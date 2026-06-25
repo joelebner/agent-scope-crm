@@ -1,6 +1,5 @@
 import type { QueueItem, CrmRecord } from '../../types';
 import { getActionTypeLabel } from '../../store/useAppStore';
-import { getRecordSummary } from '../../lib/format';
 import { formatRelativeTime } from '../../lib/format';
 
 interface AwaitingApprovalListProps {
@@ -16,6 +15,8 @@ export function AwaitingApprovalList({
   selectedId,
   onSelect,
 }: AwaitingApprovalListProps) {
+  void records;
+
   if (items.length === 0) {
     return null;
   }
@@ -26,19 +27,19 @@ export function AwaitingApprovalList({
         <li key={item.id}>
           <button
             type="button"
-            className={`audit-event-row${selectedId === item.id ? ' selected' : ''}`}
+            className={`event-log-row${selectedId === item.id ? ' selected' : ''}`}
             onClick={() => onSelect(item)}
           >
-            <span className="audit-event-time mono">
-              {formatRelativeTime(item.generatedAt)}
+            <span className="event-outcome rule-updated">AWAITING APPROVAL</span>
+            <span className="event-action-type">
+              {getActionTypeLabel(item.actionType)}
             </span>
-            <span className="audit-event-outcome">Awaiting approval</span>
-            <span className="audit-event-detail">
-              {getActionTypeLabel(item.actionType)} ·{' '}
+            <span className="event-description">
               {item.targetRecord.displayName}
             </span>
-            <span className="audit-event-actor">
-              {getRecordSummary(item, records).split(' · ')[0]}
+            <span className="event-actor">—</span>
+            <span className="event-timestamp">
+              {formatRelativeTime(item.generatedAt)}
             </span>
           </button>
         </li>

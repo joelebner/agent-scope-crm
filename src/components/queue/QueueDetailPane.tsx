@@ -1,6 +1,14 @@
+import { useEffect, useState } from 'react';
 import type { QueueItem } from '../../types';
-import type { CrmRecord } from '../../types';
-import { formatRelativeTime, isOutreachContent } from '../../lib/format';
+import type { CrmRecord, DraftContent } from '../../types';
+import { useAppStore } from '../../store';
+import {
+  formatRelativeTime,
+  isOutreachContent,
+  outreachToText,
+  textToOutreach,
+} from '../../lib/format';
+import { WritingAssistant } from './WritingAssistant';
 
 function getActionTypeLabel(actionType: QueueItem['actionType']): string {
   return actionType.replace(/_/g, ' ').toUpperCase();
@@ -21,101 +29,219 @@ interface QueueDetailPaneProps {
   item: QueueItem;
   records: CrmRecord[];
   onApprove: () => void;
-  onEdit: () => void;
   onReject: () => void;
-}
-
-function DraftContentCard({
-  item,
-  onEdit,
-}: {
-  item: QueueItem;
-  onEdit: () => void;
-}) {
-  const draft = item.draftContent;
-  const isPending = item.status === 'pending';
-  const canEdit = isPending && item.actionType === 'outreach_draft';
-
-  if (!draft) {
-    return (
-      <section className="queue-detail-draft-section">
-        <div className="queue-detail-draft-header">
-          <span className="queue-detail-draft-label mono">Draft Content</span>
-        </div>
-        <div className="queue-detail-draft-box">
-          <p className="queue-detail-draft-empty">No draft content available.</p>
-        </div>
-      </section>
-    );
-  }
-
-  if (isOutreachContent(draft)) {
-    return (
-      <section className="queue-detail-draft-section">
-        <div className="queue-detail-draft-header">
-          <span className="queue-detail-draft-label mono">Draft Content</span>
-          {canEdit && (
-            <button type="button" className="queue-edit-source mono" onClick={onEdit}>
-              Edit Source
-            </button>
-          )}
-        </div>
-        <div className="queue-detail-draft-box">
-          {draft.channel === 'email' && draft.subject && (
-            <>
-              <div className="queue-detail-draft-subject">{draft.subject}</div>
-              <div className="queue-detail-draft-divider" aria-hidden="true" />
-            </>
-          )}
-          <div className="queue-detail-draft-body">{draft.body}</div>
-        </div>
-      </section>
-    );
-  }
-
-  if ('field' in draft) {
-    return (
-      <section className="queue-detail-draft-section">
-        <div className="queue-detail-draft-header">
-          <span className="queue-detail-draft-label mono">Proposed Change</span>
-        </div>
-        <div className="queue-detail-draft-box">
-          <div className="queue-detail-draft-body">
-            <strong>{draft.field}</strong>
-            <br />
-            {draft.currentValue} → {draft.proposedValue}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if ('sequenceName' in draft) {
-    return (
-      <section className="queue-detail-draft-section">
-        <div className="queue-detail-draft-header">
-          <span className="queue-detail-draft-label mono">Sequence Enrollment</span>
-        </div>
-        <div className="queue-detail-draft-box">
-          <div className="queue-detail-draft-body">{draft.sequenceName}</div>
-        </div>
-      </section>
-    );
-  }
-
-  return null;
+  onEditedApproved?: () => void;
 }
 
 export function QueueDetailPane({
   item,
   records,
   onApprove,
-  onEdit,
   onReject,
+  onEditedApproved,
 }: QueueDetailPaneProps) {
+  const editAndApproveQueueItem = useAppStore((s) => s.editAndApproveQueueItem);
   const record = records.find((r) => r.id === item.targetRecord.id);
   const isPending = item.status === 'pending';
   const isHeld = item.status === 'held';
+  const draft = item.draftContent;
+  const isOutreachDraft =
+    isPending && item.actionType === 'outreach_draft' && isOutreachContent(draft);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editSubject, setEditSubject] = useState('');
+  const [editBody, setEditBody] = useState('');
+  const [showWritingHelp, setShowWritingHelp] = useState(false);
+
+  useEffect(() => {
+    setIsEditing(false);
+    setEditSubject('');
+    setEditBody('');
+    setShowWritingHelp(false);
+  }, [item.id]);
+
+  const openEditMode = () => {
+    if (!draft || !isOutreachContent(draft)) return;
+
+    setEditSubject(draft.channel === 'email' ? (draft.subject ?? '') : '');
+    setEditBody(draft.body);
+    setShowWritingHelp(false);
+    setIsEditing(true);
+  };
+
+  const closeEditMode = () => {
+    setIsEditing(false);
+    setEditSubject('');
+    setEditBody('');
+    setShowWritingHelp(false);
+  };
+
+  const buildEditedContent = (): DraftContent | null => {
+    if (!draft || !isOutreachContent(draft)) return null;
+
+    if (draft.channel === 'email') {
+      return { channel: 'email', subject: editSubject, body: editBody };
+    }
+    return { channel: 'linkedin', body: editBody };
+  };
+
+  const handleApproveEdited = () => {
+    const edited = buildEditedContent();
+    if (!edited) return;
+
+    editAndApproveQueueItem(item.id, edited);
+    closeEditMode();
+    onEditedApproved?.();
+  };
+
+  const handleAcceptSuggestion = (text: string) => {
+    if (!draft || !isOutreachContent(draft)) return;
+
+    if (draft.channel === 'email') {
+      const parsed = textToOutreach(text, draft);
+      setEditSubject(parsed.subject ?? '');
+      setEditBody(parsed.body);
+    } else {
+      setEditBody(text);
+    }
+  };
+
+  const currentDraftText =
+    draft && isOutreachContent(draft)
+      ? outreachToText(
+          draft.channel === 'email'
+            ? { channel: 'email', subject: editSubject, body: editBody }
+            : { channel: 'linkedin', body: editBody },
+        )
+      : '';
+
+  const renderDraftCard = () => {
+    if (!draft) {
+      return (
+        <section className="queue-detail-draft-section">
+          <div className="queue-detail-draft-header">
+            <span className="queue-detail-draft-label mono">Draft Content</span>
+          </div>
+          <div className="queue-detail-draft-box">
+            <p className="queue-detail-draft-empty">No draft content available.</p>
+          </div>
+        </section>
+      );
+    }
+
+    if (isEditing && isOutreachContent(draft)) {
+      return (
+        <section className="queue-detail-draft-section">
+          <div className="editing-draft-card">
+            <div className="editing-draft-header">
+              <span className="queue-detail-draft-label mono">Editing Draft</span>
+            </div>
+            <div className="editing-draft-fields">
+              {draft.channel === 'email' && (
+                <input
+                  className="edit-subject"
+                  type="text"
+                  value={editSubject}
+                  onChange={(e) => setEditSubject(e.target.value)}
+                  aria-label="Email subject"
+                />
+              )}
+              {draft.channel === 'email' && (
+                <div className="edit-divider" aria-hidden="true" />
+              )}
+              <textarea
+                className="edit-body"
+                value={editBody}
+                onChange={(e) => setEditBody(e.target.value)}
+                rows={8}
+                aria-label="Draft body"
+              />
+              <div className="writing-help-trigger">
+                <button
+                  type="button"
+                  className="writing-help-link mono"
+                  onClick={() => setShowWritingHelp((open) => !open)}
+                >
+                  Get writing help →
+                </button>
+              </div>
+              {showWritingHelp && (
+                <WritingAssistant
+                  compact
+                  contactName={item.targetRecord.displayName}
+                  contactType={record?.contactType ?? null}
+                  dealStage={record?.dealStage ?? null}
+                  agentReasoning={item.agentReasoning}
+                  currentDraft={currentDraftText}
+                  onAccept={handleAcceptSuggestion}
+                />
+              )}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if (isOutreachContent(draft)) {
+      return (
+        <section className="queue-detail-draft-section">
+          <div className="queue-detail-draft-header">
+            <span className="queue-detail-draft-label mono">Draft Content</span>
+            {isOutreachDraft && (
+              <button
+                type="button"
+                className="edit-draft-link"
+                onClick={openEditMode}
+              >
+                EDIT
+              </button>
+            )}
+          </div>
+          <div className="queue-detail-draft-box">
+            {draft.channel === 'email' && draft.subject && (
+              <>
+                <div className="queue-detail-draft-subject">{draft.subject}</div>
+                <div className="queue-detail-draft-divider" aria-hidden="true" />
+              </>
+            )}
+            <div className="queue-detail-draft-body">{draft.body}</div>
+          </div>
+        </section>
+      );
+    }
+
+    if ('field' in draft) {
+      return (
+        <section className="queue-detail-draft-section">
+          <div className="queue-detail-draft-header">
+            <span className="queue-detail-draft-label mono">Proposed Change</span>
+          </div>
+          <div className="queue-detail-draft-box">
+            <div className="queue-detail-draft-body">
+              <strong>{draft.field}</strong>
+              <br />
+              {draft.currentValue} → {draft.proposedValue}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    if ('sequenceName' in draft) {
+      return (
+        <section className="queue-detail-draft-section">
+          <div className="queue-detail-draft-header">
+            <span className="queue-detail-draft-label mono">Sequence Enrollment</span>
+          </div>
+          <div className="queue-detail-draft-box">
+            <div className="queue-detail-draft-body">{draft.sequenceName}</div>
+          </div>
+        </section>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="queue-detail-pane">
@@ -178,36 +304,48 @@ export function QueueDetailPane({
 
         <div className="queue-detail-divider" aria-hidden="true" />
 
-        <DraftContentCard item={item} onEdit={onEdit} />
+        {renderDraftCard()}
 
         <div className="queue-detail-divider" aria-hidden="true" />
 
         {isPending && (
           <div className="queue-detail-actions">
-            <button
-              type="button"
-              className="queue-detail-approve"
-              onClick={onApprove}
-            >
-              Approve &amp; Execute
-            </button>
-            <div className="queue-detail-secondary-actions">
-              {item.actionType === 'outreach_draft' && (
-                <button
-                  type="button"
-                  className="queue-detail-btn-secondary"
-                  onClick={onEdit}
-                >
-                  Edit
-                </button>
+            <div className="action-button-group">
+              {isEditing ? (
+                <>
+                  <button
+                    type="button"
+                    className="queue-detail-approve"
+                    onClick={handleApproveEdited}
+                  >
+                    Approve Edited Version
+                  </button>
+                  <button
+                    type="button"
+                    className="queue-detail-btn-cancel"
+                    onClick={closeEditMode}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="queue-detail-approve"
+                    onClick={onApprove}
+                  >
+                    Approve &amp; Execute
+                  </button>
+                  <button
+                    type="button"
+                    className="queue-detail-btn-reject"
+                    onClick={onReject}
+                  >
+                    Reject
+                  </button>
+                </>
               )}
-              <button
-                type="button"
-                className="queue-detail-btn-secondary queue-detail-btn-reject"
-                onClick={onReject}
-              >
-                Reject
-              </button>
             </div>
           </div>
         )}

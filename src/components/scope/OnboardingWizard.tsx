@@ -42,7 +42,7 @@ export function OnboardingWizard({
           <p>
             Agent Scope lets you define what your AI agent may do autonomously,
             what requires rep review, what needs manager approval, and what is
-            never permitted.
+            manual only.
           </p>
           <p>
             This is not a workflow builder — it is a permissions matrix for

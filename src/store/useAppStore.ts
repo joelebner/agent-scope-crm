@@ -28,6 +28,12 @@ import {
   reEvaluateQueueItems,
 } from './utils';
 
+export const PERSONA_USER_ID_BY_ROLE: Record<UserRole, string> = {
+  rep: 'user-jordan',
+  team_lead: 'user-alex',
+  manager: 'user-sam',
+};
+
 export interface AppState {
   agent: Agent;
   users: User[];
@@ -59,7 +65,6 @@ export interface AppActions {
     note?: string,
   ) => void;
   editAndApproveQueueItem: (itemId: string, editedContent: DraftContent) => void;
-  batchApproveQueueItems: (itemIds: string[]) => void;
 
   approveManagerItem: (itemId: string) => void;
   denyManagerItem: (itemId: string, reason: RejectionCategory, note?: string) => void;
@@ -128,7 +133,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setActiveUser: (userId) => set({ activeUserId: userId }),
 
   setActiveUserByRole: (role) => {
-    const user = get().users.find((u) => u.role === role);
+    const userId = PERSONA_USER_ID_BY_ROLE[role];
+    const user = get().users.find((u) => u.id === userId);
     if (user) set({ activeUserId: user.id });
   },
 
@@ -252,37 +258,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
     });
   },
 
-  batchApproveQueueItems: (itemIds) => {
-    set((state) => {
-      let queueItems = [...state.queueItems];
-      let auditEvents = [...state.auditEvents];
-      const actor = getActor(state);
-      const now = new Date().toISOString();
-
-      for (const itemId of itemIds) {
-        const index = queueItems.findIndex((i) => i.id === itemId);
-        if (index === -1) continue;
-
-        const item = queueItems[index];
-        if (!item.draftContent || item.status !== 'pending') continue;
-
-        const resolved: QueueItem = {
-          ...item,
-          status: 'approved',
-          finalContent: copyDraftContent(item.draftContent),
-          editedContent: null,
-          resolvedAt: now,
-          resolvedBy: actor.id,
-        };
-
-        queueItems[index] = resolved;
-        auditEvents = [...auditEvents, buildQueueResolvedEvent(resolved, actor)];
-      }
-
-      return { queueItems, auditEvents };
-    });
-  },
-
   approveManagerItem: (itemId) => {
     set((state) => {
       const item = state.queueItems.find((i) => i.id === itemId);
@@ -366,7 +341,7 @@ export function getDefaultRouteForRole(role: UserRole): string {
 }
 
 export function getUserByRole(users: User[], role: UserRole): User | undefined {
-  return users.find((u) => u.role === role);
+  return users.find((u) => u.id === PERSONA_USER_ID_BY_ROLE[role]);
 }
 
 export function getAutonomyLabel(level: AutonomyLevel): string {
@@ -374,7 +349,7 @@ export function getAutonomyLabel(level: AutonomyLevel): string {
     auto_execute: 'Auto-execute',
     rep_review: 'Rep review',
     manager_approval: 'Manager approval',
-    never: 'Never',
+    never: 'Manual',
   };
   return labels[level];
 }

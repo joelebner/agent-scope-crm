@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAppStore } from '../store';
 import {
   computeAuditSummary,
-  detectAnomalies,
   filterAuditEvents,
   type AuditFilters,
+  type DateRangePreset,
 } from '../lib/audit';
 import { AuditSummaryPanel } from '../components/audit/AuditSummaryPanel';
 import { AnomalyCallouts } from '../components/audit/AnomalyCallouts';
@@ -15,15 +15,14 @@ import { AuditDrillDown } from '../components/audit/AuditDrillDown';
 import { AwaitingApprovalList } from '../components/audit/AwaitingApprovalList';
 import { AuditEmptyState } from '../components/audit/AuditEmptyState';
 import { Toast } from '../components/ui/Toast';
+import { Select } from '../components/ui/Select';
+import { getActionTypeLabel } from '../store/useAppStore';
+import { ACTION_TYPES } from '../types';
 import type { AuditEvent, ActionType, QueueItem } from '../types';
 
 type AuditTab = 'activity' | 'awaiting';
 
-const DATE_LABELS = {
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
-};
+const PERIOD_PRESETS: DateRangePreset[] = ['7d', '30d', '90d'];
 
 export function ActivityAudit() {
   const { eventId } = useParams();
@@ -65,11 +64,6 @@ export function ActivityAudit() {
   const summary = useMemo(
     () => computeAuditSummary(rangeEvents, queueItems),
     [rangeEvents, queueItems],
-  );
-
-  const anomalies = useMemo(
-    () => detectAnomalies(rangeEvents, queueItems, users),
-    [rangeEvents, queueItems, users],
   );
 
   const awaitingItems = queueItems.filter(
@@ -138,14 +132,25 @@ export function ActivityAudit() {
 
   return (
     <>
-      <div className="page-header">
-        <div>
-          <h2>Activity Audit</h2>
-          <p>
-            AI-initiated actions across the team. Summary first, drill down on
-            demand.
-          </p>
+      <div className="audit-content">
+        <div className="audit-header">
+        <div className="audit-header-label mono">AI-INITIATED ACTIONS ONLY</div>
+        <div className="audit-header-row">
+          <h1 className="audit-heading">Activity Audit</h1>
+          <div className="period-toggle">
+            {PERIOD_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className={`period-btn${filters.preset === preset ? ' active' : ''}`}
+                onClick={() => setFilters({ ...filters, preset })}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
         </div>
+        <div className="audit-header-divider" aria-hidden="true" />
       </div>
 
       {isManager && (
@@ -174,30 +179,65 @@ export function ActivityAudit() {
         <>
           <AuditFiltersBar
             filters={filters}
-            users={users}
             onChange={setFilters}
           />
 
-          <AuditSummaryPanel
-            summary={summary}
-            dateLabel={DATE_LABELS[filters.preset]}
-          />
+          <AuditSummaryPanel summary={summary} />
 
-          <AnomalyCallouts
-            anomalies={anomalies}
-            onAdjustScope={handleAdjustScope}
-          />
+          <AnomalyCallouts onAdjustScope={handleAdjustScope} />
 
           <section className="audit-events-section">
-            <h3 className="section-label">
-              Action log ({filteredEvents.length})
-            </h3>
+            <div className="event-log-header">
+              <h3 className="event-log-section-label mono">
+                EVENT LOG · {filteredEvents.length}
+              </h3>
+              <div className="event-log-filters">
+                <Select
+                  id="event-log-action-type"
+                  className="event-log-filter"
+                  value={filters.actionType}
+                  onChange={(e) =>
+                    setFilters({
+                      ...filters,
+                      actionType: e.target.value as AuditFilters['actionType'],
+                    })
+                  }
+                  aria-label="Filter by action type"
+                >
+                  <option value="all">All actions</option>
+                  {ACTION_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {getActionTypeLabel(type)}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  id="event-log-actor"
+                  className="event-log-filter"
+                  value={filters.repId}
+                  onChange={(e) =>
+                    setFilters({ ...filters, repId: e.target.value })
+                  }
+                  aria-label="Filter by actor"
+                >
+                  <option value="all">All actors</option>
+                  {users
+                    .filter((u) => u.role === 'rep')
+                    .map((rep) => (
+                      <option key={rep.id} value={rep.id}>
+                        {rep.name}
+                      </option>
+                    ))}
+                </Select>
+              </div>
+            </div>
             {filteredEvents.length === 0 ? (
               <AuditEmptyState variant="no-events" />
             ) : (
               <AuditEventList
                 events={filteredEvents}
                 users={users}
+                queueItems={queueItems}
                 selectedEventId={selectedEvent?.id ?? null}
                 onSelect={handleSelectEvent}
               />
@@ -214,7 +254,7 @@ export function ActivityAudit() {
           <p
             style={{
               fontSize: '0.8125rem',
-              color: 'var(--gray-60)',
+              color: 'var(--color-text-secondary)',
               margin: '0 0 1rem',
             }}
           >
@@ -231,6 +271,8 @@ export function ActivityAudit() {
           )}
         </section>
       )}
+
+      </div>
 
       {(selectedEvent || selectedApprovalId) && (
         <AuditDrillDown

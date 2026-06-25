@@ -5,11 +5,14 @@ import { findConflictingRules } from '../store/utils';
 import { ScopeMatrix } from '../components/scope/ScopeMatrix';
 import { ConditionalRulesList } from '../components/scope/ConditionalRulesList';
 import { ConflictBanner } from '../components/scope/ConflictBanner';
-import { RuleEditModal } from '../components/scope/RuleEditModal';
+import { RuleEditPanel } from '../components/scope/RuleEditPanel';
 import { OnboardingWizard } from '../components/scope/OnboardingWizard';
 import { Toast } from '../components/ui/Toast';
 import { getDefaultRule, getMatrixDefaults } from '../lib/scope';
 import type { ActionType, AutonomyLevel, ScopeRule } from '../types';
+
+/** Dormant: set to true to re-enable the first-visit onboarding wizard. */
+const ONBOARDING_WIZARD_ENABLED = false;
 
 function ScopePageHeader() {
   return (
@@ -78,9 +81,10 @@ export function ScopeBuilder() {
     setToast(message);
   };
 
-  const handleEditActionType = (actionType: ActionType) => {
+  const handleRefineActionType = (actionType: ActionType) => {
     setFocusActionType(actionType);
-    conditionalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setEditingRule(null);
+    setAddingRuleFor(actionType);
   };
 
   const handleSaveRule = (data: {
@@ -136,7 +140,11 @@ export function ScopeBuilder() {
     setToast('Agent scope configured. Changes logged to audit.');
   };
 
-  if (!onboardingComplete && activeUser.role === 'team_lead') {
+  if (
+    ONBOARDING_WIZARD_ENABLED &&
+    !onboardingComplete &&
+    activeUser.role === 'team_lead'
+  ) {
     return (
       <OnboardingWizard
         initialLevels={getMatrixDefaults(scopeRules)}
@@ -152,10 +160,11 @@ export function ScopeBuilder() {
   if (readOnly) {
     return (
       <div className="scope-builder">
-        <div className="scope-builder-content">
-          <ScopePageHeader />
+      <div className="scope-builder-content">
+        <ConflictBanner conflicts={conflicts} />
+        <ScopePageHeader />
 
-          <ScopeMatrix
+        <ScopeMatrix
             scopeRules={scopeRules}
             highlightedActionType={highlightedActionType}
             readOnly
@@ -181,6 +190,7 @@ export function ScopeBuilder() {
   return (
     <div className="scope-builder">
       <div className="scope-builder-content">
+        <ConflictBanner conflicts={conflicts} />
         <ScopePageHeader />
 
         {scopeBuilderFilter && (
@@ -208,14 +218,12 @@ export function ScopeBuilder() {
           </div>
         )}
 
-        <ConflictBanner conflicts={conflicts} />
-
         <section className="scope-matrix-section">
           <ScopeMatrix
             scopeRules={scopeRules}
             highlightedActionType={highlightedActionType}
             onSetDefault={handleSetDefault}
-            onEditActionType={handleEditActionType}
+            onEditActionType={handleRefineActionType}
           />
         </section>
 
@@ -224,14 +232,20 @@ export function ScopeBuilder() {
           <ConditionalRulesList
             rules={scopeRules}
             filterActionType={highlightedActionType ?? undefined}
-            onEdit={setEditingRule}
-            onAdd={(type) => setAddingRuleFor(type)}
+            onAdd={(type) => {
+              setEditingRule(null);
+              setAddingRuleFor(type);
+            }}
+            onEdit={(rule) => {
+              setAddingRuleFor(null);
+              setEditingRule(rule);
+            }}
           />
         </section>
       </div>
 
       {(editingRule || addingRuleFor) && (
-        <RuleEditModal
+        <RuleEditPanel
           rule={editingRule ?? undefined}
           defaultActionType={addingRuleFor ?? editingRule?.actionType}
           onSave={handleSaveRule}

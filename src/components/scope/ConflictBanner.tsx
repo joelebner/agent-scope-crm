@@ -22,9 +22,11 @@ export function ConflictBanner({ conflicts }: ConflictBannerProps) {
 
   return (
     <div className="conflict-banner">
-      <div className="conflict-banner-header">
-        <strong>{conflicts.length} conflicting rule set{conflicts.length > 1 ? 's' : ''}</strong>
-        <span>More restrictive level wins when conditions overlap</span>
+      <div className="conflict-banner-title">
+        {conflicts.length} conflicting rule set{conflicts.length > 1 ? 's' : ''}
+      </div>
+      <div className="conflict-banner-body">
+        More restrictive level wins when conditions overlap
       </div>
       <ul className="conflict-list">
         {conflicts.map((group) => {
@@ -33,13 +35,17 @@ export function ConflictBanner({ conflicts }: ConflictBannerProps) {
 
           return (
             <li key={group.map((r) => r.id).join('-')} className="conflict-item">
-              <span className="conflict-conditions">
-                {formatConditions(group[0].conditions)}
-              </span>
-              <span className="conflict-resolution">
-                {levels.map(getAutonomyLabel).join(' vs ')} →{' '}
-                <strong>{getAutonomyLabel(effective)}</strong> applies
-              </span>
+              <div className="conflict-banner-detail">
+                <span className="conflict-conditions">
+                  {formatConditions(group[0].conditions)}
+                </span>
+              </div>
+              <div className="conflict-banner-detail">
+                <span className="conflict-resolution">
+                  {levels.map(getAutonomyLabel).join(' vs ')} →{' '}
+                  <strong>{getAutonomyLabel(effective)}</strong> applies
+                </span>
+              </div>
             </li>
           );
         })}

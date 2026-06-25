@@ -4,23 +4,24 @@ import type { ActionType } from '../../types';
 
 interface AuditSummaryProps {
   summary: AuditSummary;
-  dateLabel: string;
 }
 
-function StatCard({
+function StatTile({
   label,
   value,
   sub,
+  rejected,
 }: {
   label: string;
   value: number | string;
   sub?: string;
+  rejected?: boolean;
 }) {
   return (
-    <div className="audit-stat-card">
-      <span className="audit-stat-label">{label}</span>
-      <span className="audit-stat-value">{value}</span>
-      {sub && <span className="audit-stat-sub">{sub}</span>}
+    <div className={`stat-tile${rejected ? ' rejected' : ''}`}>
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value}</div>
+      {sub && <div className="stat-sub">{sub}</div>}
     </div>
   );
 }
@@ -35,6 +36,7 @@ function RejectionBar({
   total: number;
 }) {
   const pct = Math.round(rate * 100);
+  const isHighRejection = rate > 0.4;
 
   return (
     <div className="rejection-bar-row">
@@ -43,7 +45,7 @@ function RejectionBar({
       </span>
       <div className="rejection-bar-track">
         <div
-          className="rejection-bar-fill"
+          className={`rejection-bar-fill${isHighRejection ? ' rejection-bar-fill--high' : ''}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -53,44 +55,26 @@ function RejectionBar({
   );
 }
 
-export function AuditSummaryPanel({ summary, dateLabel }: AuditSummaryProps) {
-  const outcomeTotal =
-    summary.outcomes.approved +
-    summary.outcomes.edited_approved +
-    summary.outcomes.rejected +
-    summary.outcomes.auto_executed +
-    summary.outcomes.revoked;
+export function AuditSummaryPanel({ summary }: AuditSummaryProps) {
+  const approvedTotal =
+    summary.outcomes.approved + summary.outcomes.edited_approved;
+  const editedSub =
+    summary.outcomes.edited_approved > 0
+      ? `${summary.outcomes.edited_approved} edited`
+      : undefined;
 
   return (
     <div className="audit-summary">
-      <div className="audit-summary-header">
-        <h3 className="section-label">Summary — {dateLabel}</h3>
-      </div>
-
-      <div className="audit-stat-grid">
-        <StatCard label="Total agent actions" value={summary.totalActions} />
-        <StatCard
-          label="Scope rule changes"
-          value={summary.scopeRuleChanges}
-        />
-        <StatCard
-          label="Approval rate"
-          value={
-            outcomeTotal > 0
-              ? `${Math.round(((summary.outcomes.approved + summary.outcomes.edited_approved + summary.outcomes.auto_executed) / outcomeTotal) * 100)}%`
-              : '—'
-          }
-          sub="Approved + edited + auto"
-        />
-        <StatCard
-          label="Rejections"
+      <div className="stat-tiles">
+        <StatTile label="TOTAL ACTIONS" value={summary.totalActions} />
+        <StatTile label="AUTO-EXECUTED" value={summary.outcomes.auto_executed} />
+        <StatTile label="APPROVED" value={approvedTotal} sub={editedSub} />
+        <StatTile
+          label="REJECTED"
           value={summary.outcomes.rejected}
-          sub={
-            outcomeTotal > 0
-              ? `${Math.round((summary.outcomes.rejected / outcomeTotal) * 100)}% of resolved`
-              : undefined
-          }
+          rejected
         />
+        <StatTile label="RULE CHANGES" value={summary.scopeRuleChanges} />
       </div>
 
       <div className="audit-summary-columns">

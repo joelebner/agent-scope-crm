@@ -1,0 +1,48 @@
+:root {
+  /* Brand */
+  --color-active: #4E46E4;
+
+  /* Red */
+  --color-red-1: #F4E5E4;
+  --color-red-2: #D55C5A;
+  --color-red-3: #CA2E2C;
+  --color-red-4: #BD0907;
+
+  /* Yellow */
+  --color-yellow-1: #FEF5EA;
+  --color-yellow-2: #FAE3C6;
+  --color-yellow-3: #EFA329;
+  --color-yellow-4: #E2951A;
+
+  /* Grayscale */
+  --color-white: #FFFFFF;
+  --color-gray-1: #F9F9F9;
+  --color-gray-2: #F3F3F3;
+  --color-gray-3: #E2E2E2;
+  --color-gray-4: #969696;
+  --color-gray-5: #828282;
+  --color-gray-6: #757575;
+  --color-gray-7: #2C2C2C;
+  --color-black: #000000;
+
+  /* Semantic aliases */
+  --color-text-primary: var(--color-black);
+  --color-text-secondary: var(--color-gray-5);
+  --color-text-muted: var(--color-gray-4);
+  --color-border-default: var(--color-gray-3);
+  --color-border-strong: var(--color-gray-7);
+  --color-surface-default: var(--color-white);
+  --color-surface-subtle: var(--color-gray-1);
+  --color-surface-muted: var(--color-gray-2);
+
+  /* Functional */
+  --color-warning-bg: var(--color-yellow-1);
+  --color-warning-border: var(--color-yellow-3);
+  --color-warning-text: var(--color-yellow-4);
+  --color-danger-bg: var(--color-red-1);
+  --color-danger-border: var(--color-red-3);
+  --color-danger-text: var(--color-red-4);
+  --color-held-bg: var(--color-gray-1);
+  --color-held-border: var(--color-gray-4);
+  --color-held-text: var(--color-gray-5);
+}

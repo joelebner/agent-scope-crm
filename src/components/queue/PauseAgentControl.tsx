@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useAppStore } from '../../store';
 
-export function PauseAgentControl() {
+interface PauseAgentControlProps {
+  compact?: boolean;
+}
+
+export function PauseAgentControl({ compact = false }: PauseAgentControlProps) {
   const [open, setOpen] = useState(false);
   const agent = useAppStore((s) => s.agent);
   const agentPauseUntil = useAppStore((s) => s.agentPauseUntil);
@@ -24,6 +28,18 @@ export function PauseAgentControl() {
   };
 
   if (isPaused) {
+    if (compact) {
+      return (
+        <button
+          type="button"
+          className="topbar-action-btn mono"
+          onClick={resumeAgent}
+        >
+          Resume agent
+        </button>
+      );
+    }
+
     return (
       <div className="agent-paused-banner">
         <span>

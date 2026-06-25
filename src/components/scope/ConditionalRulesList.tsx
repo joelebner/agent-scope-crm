@@ -89,7 +89,7 @@ export function ConditionalRulesList({
       {!readOnly && (
         <button
           type="button"
-          className="btn btn-sm conditional-refinements-add"
+          className="btn btn-secondary conditional-refinements-add"
           onClick={() => onAdd(filterActionType ?? 'outreach_draft')}
         >
           Add conditional rule

@@ -24,7 +24,7 @@ export const FIXTURE_AGENT: Agent = {
 export const FIXTURE_USERS: User[] = [
   {
     id: 'user-jordan',
-    name: 'Jordan',
+    name: 'Jordan Miller',
     role: 'rep',
     agentEnabled: true,
     blackoutPeriods: [
@@ -40,14 +40,14 @@ export const FIXTURE_USERS: User[] = [
   },
   {
     id: 'user-alex',
-    name: 'Alex',
+    name: 'Alex Chen',
     role: 'team_lead',
     agentEnabled: true,
     blackoutPeriods: [],
   },
   {
     id: 'user-sam',
-    name: 'Sam',
+    name: 'Sam Rivera',
     role: 'manager',
     agentEnabled: true,
     blackoutPeriods: [],

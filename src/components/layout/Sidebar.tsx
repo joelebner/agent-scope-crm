@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { useAppStore } from '../../store';
+import { useAppStore, PERSONA_USER_ID_BY_ROLE } from '../../store';
 import type { UserRole } from '../../types';
 
 const NAV_ITEMS = [
@@ -10,14 +10,18 @@ const NAV_ITEMS = [
 
 const ROLE_LABELS: Record<UserRole, string> = {
   rep: 'Rep',
-  team_lead: 'Team Lead',
+  team_lead: 'Lead',
   manager: 'Manager',
 };
 
 export function Sidebar() {
   const agent = useAppStore((s) => s.agent);
   const getPendingCount = useAppStore((s) => s.getPendingCount);
-  const activeUser = useAppStore((s) => s.getActiveUser());
+  const activeUserId = useAppStore((s) => s.activeUserId);
+  const users = useAppStore((s) => s.users);
+  const activeUser =
+    users.find((u) => u.id === activeUserId) ??
+    users.find((u) => u.id === PERSONA_USER_ID_BY_ROLE.rep)!;
 
   const pendingCount =
     activeUser.role === 'rep' ? getPendingCount() : getPendingCount('user-jordan');
@@ -58,16 +62,14 @@ export function Sidebar() {
           </nav>
         </div>
 
-        <div className="sidebar-profile">
-          <div className="sidebar-avatar" aria-hidden="true" />
-          <div className="sidebar-profile-text">
-            <p className="sidebar-profile-name">
+        <div className="nav-user">
+          <div className="nav-user-avatar" aria-hidden="true" />
+          <div className="nav-user-info">
+            <div className="nav-user-name">
               {activeUser.name}{' '}
-              <span className="sidebar-profile-role">
-                ({ROLE_LABELS[activeUser.role]})
-              </span>
-            </p>
-            <p className="sidebar-profile-status mono">{agentStatusLabel}</p>
+              <span className="nav-user-role">({ROLE_LABELS[activeUser.role]})</span>
+            </div>
+            <div className="nav-user-status">{agentStatusLabel}</div>
           </div>
         </div>
       </div>

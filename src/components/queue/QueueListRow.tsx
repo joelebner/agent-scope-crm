@@ -15,6 +15,7 @@ function getConfidenceLabel(score: QueueItem['confidenceScore']): string {
 }
 
 function getRowTag(item: QueueItem): string {
+  if (item.flags.dataStale) return '[STALE DATA]';
   if (item.status === 'held') return '[HELD_BLACKOUT]';
   return getActionTypeTag(item.actionType);
 }
@@ -27,6 +28,7 @@ interface QueueListRowProps {
 
 export function QueueListRow({ item, selected, onSelect }: QueueListRowProps) {
   const isSensitive = item.flags.sensitiveContact;
+  const isStale = item.flags.dataStale;
 
   return (
     <button
@@ -35,6 +37,7 @@ export function QueueListRow({ item, selected, onSelect }: QueueListRowProps) {
         'queue-list-row',
         selected ? 'selected' : '',
         isSensitive ? 'sensitive' : '',
+        isStale ? 'stale' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -56,7 +59,7 @@ export function QueueListRow({ item, selected, onSelect }: QueueListRowProps) {
         </span>
         {item.flags.dataStale && (
           <span className="queue-flag-badge queue-flag-stale mono">
-            STALE DATA
+            STALE
           </span>
         )}
         {isSensitive && (

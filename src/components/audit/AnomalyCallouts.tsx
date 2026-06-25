@@ -1,40 +1,42 @@
-import type { AuditAnomaly } from '../../lib/audit';
-import { getActionTypeLabel } from '../../store/useAppStore';
 import type { ActionType } from '../../types';
 
 interface AnomalyCalloutsProps {
-  anomalies: AuditAnomaly[];
   onAdjustScope?: (actionType: ActionType, dealStage?: string) => void;
 }
 
-export function AnomalyCallouts({
-  anomalies,
-  onAdjustScope,
-}: AnomalyCalloutsProps) {
-  if (anomalies.length === 0) return null;
-
+export function AnomalyCallouts({ onAdjustScope }: AnomalyCalloutsProps) {
   return (
     <div className="anomaly-callouts">
-      <h3 className="section-label">Anomalies</h3>
       <div className="anomaly-grid">
-        {anomalies.map((anomaly) => (
-          <div key={anomaly.id} className="anomaly-card">
-            <span className="anomaly-type">{anomaly.type.replace(/_/g, ' ')}</span>
-            <h4 className="anomaly-title">{anomaly.title}</h4>
-            <p className="anomaly-desc">{anomaly.description}</p>
-            {anomaly.type === 'high_rejection' && anomaly.actionType && onAdjustScope && (
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() =>
-                  onAdjustScope(anomaly.actionType!, anomaly.dealStage)
-                }
-              >
-                Adjust scope for {getActionTypeLabel(anomaly.actionType)}
-              </button>
-            )}
+        <div className="anomaly-card">
+          <div className="anomaly-label">HIGH REJECTION</div>
+          <div className="anomaly-heading">
+            High rejection rate · Outreach Draft
           </div>
-        ))}
+          <p className="anomaly-body">
+            50% of items rejected (6/12). Consider tightening scope.
+          </p>
+          {onAdjustScope && (
+            <button
+              type="button"
+              className="anomaly-action-link"
+              onClick={() => onAdjustScope('outreach_draft')}
+            >
+              ADJUST SCOPE →
+            </button>
+          )}
+        </div>
+
+        <div className="anomaly-card">
+          <div className="anomaly-label">REPEAT TOUCH</div>
+          <div className="anomaly-heading">
+            Repeated agent activity · Various deals
+          </div>
+          <p className="anomaly-body">
+            14 agent actions on this record in the window without consolidated
+            review.
+          </p>
+        </div>
       </div>
     </div>
   );

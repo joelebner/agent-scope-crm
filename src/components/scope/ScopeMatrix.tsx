@@ -13,7 +13,7 @@ const COLUMN_HEADERS: Record<AutonomyLevel, string> = {
   auto_execute: 'AUTO-EXECUTE',
   rep_review: 'REP REVIEW',
   manager_approval: 'MANAGER APPROVAL',
-  never: 'NEVER',
+  never: 'MANUAL',
 };
 
 function hasRestrictiveOverride(
@@ -130,10 +130,9 @@ export function ScopeMatrix({
                     >
                       {isActive ? (
                         <div
-                          className={`active-pill${overrideActive ? ' override' : ''}`}
+                          className={`active-pill${level === 'never' ? ' never' : overrideActive ? ' override' : ''}`}
                         >
-                          <span className="dot">•</span>
-                          <span>ACTIVE</span>
+                          {level === 'never' ? 'MANUAL' : 'ACTIVE'}
                         </div>
                       ) : (
                         <div className="radio-empty" />

@@ -15,6 +15,7 @@ interface WritingAssistantProps {
   agentReasoning: string;
   currentDraft: string;
   onAccept: (text: string) => void;
+  compact?: boolean;
 }
 
 export function WritingAssistant({
@@ -24,6 +25,7 @@ export function WritingAssistant({
   agentReasoning,
   currentDraft,
   onAccept,
+  compact = false,
 }: WritingAssistantProps) {
   const [mode, setMode] = useState<WritingAssistantMode>('tighten');
   const [tone, setTone] = useState<ToneRegister>('conversational');
@@ -59,17 +61,21 @@ export function WritingAssistant({
   };
 
   return (
-    <div className="assistant-section">
-      <h4>Writing assistant</h4>
-      <p
-        style={{
-          fontSize: '0.75rem',
-          color: 'var(--gray-60)',
-          margin: '0 0 0.75rem',
-        }}
-      >
-        On-demand help — suggestions never auto-apply. Not logged in audit.
-      </p>
+    <div className={`assistant-section${compact ? ' assistant-section--compact' : ''}`}>
+      {!compact && (
+        <>
+          <h4>Writing assistant</h4>
+          <p
+            style={{
+              fontSize: '0.75rem',
+              color: 'var(--color-text-secondary)',
+              margin: '0 0 0.75rem',
+            }}
+          >
+            On-demand help — suggestions never auto-apply. Not logged in audit.
+          </p>
+        </>
+      )}
 
       <div className="assistant-modes">
         {(Object.keys(ASSISTANT_MODE_LABELS) as WritingAssistantMode[]).map(
@@ -106,11 +112,11 @@ export function WritingAssistant({
 
       <button
         type="button"
-        className="btn btn-sm"
+        className="btn btn-sm assistant-get-suggestion"
         onClick={handleInvoke}
         disabled={loading}
       >
-        {loading ? 'Generating…' : 'Get suggestion'}
+        {loading ? 'Generating…' : compact ? 'GET SUGGESTION' : 'Get suggestion'}
       </button>
 
       {error && <p className="assistant-error">{error}</p>}

@@ -63,7 +63,7 @@ export function getAutonomyShortLabel(level: AutonomyLevel): string {
     auto_execute: 'Auto',
     rep_review: 'Rep review',
     manager_approval: 'Manager',
-    never: 'Never',
+    never: 'Manual',
   };
   return labels[level];
 }

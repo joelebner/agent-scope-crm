@@ -6,7 +6,6 @@ import { QueueDetailPane } from '../components/queue/QueueDetailPane';
 import { RevokedQueueItemCard } from '../components/queue/RevokedQueueItemCard';
 import { RejectModal } from '../components/queue/RejectModal';
 import { ConfirmModal } from '../components/queue/ConfirmModal';
-import { EditApprovePanel } from '../components/queue/EditApprovePanel';
 import { QueueEmptyState } from '../components/queue/QueueEmptyState';
 import { Toast } from '../components/ui/Toast';
 import type { QueueItem } from '../types';
@@ -26,13 +25,11 @@ export function ReviewQueue() {
   const activeUser = useAppStore((s) => s.getActiveUser());
   const approveQueueItem = useAppStore((s) => s.approveQueueItem);
   const rejectQueueItem = useAppStore((s) => s.rejectQueueItem);
-  const batchApproveQueueItems = useAppStore((s) => s.batchApproveQueueItems);
   const setAgentEnabled = useAppStore((s) => s.setAgentEnabled);
   const resumeAgent = useAppStore((s) => s.resumeAgent);
   const setActiveUserByRole = useAppStore((s) => s.setActiveUserByRole);
 
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [editingItem, setEditingItem] = useState<QueueItem | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showRevoked, setShowRevoked] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -72,10 +69,6 @@ export function ReviewQueue() {
     });
   }, [listItems]);
 
-  const highConfidencePending = pending.filter(
-    (item) => item.confidenceScore === 'high',
-  );
-
   const isGloballyPaused = agent.status === 'paused' && agentPauseUntil;
 
   const needsConfirm = (item: QueueItem) =>
@@ -104,17 +97,6 @@ export function ReviewQueue() {
       setToast('Rejection recorded. Signal sent to team lead.');
     }
     setPendingAction(null);
-  };
-
-  const handleBatchApprove = () => {
-    const ids = highConfidencePending
-      .filter((item) => !needsConfirm(item))
-      .map((item) => item.id);
-
-    if (ids.length === 0) return;
-
-    batchApproveQueueItems(ids);
-    setToast(`${ids.length} high-confidence actions approved.`);
   };
 
   const renderDetailEmpty = () => {
@@ -195,18 +177,6 @@ export function ReviewQueue() {
         </div>
       )}
 
-      {highConfidencePending.length >= 2 && (
-        <div className="batch-bar">
-          <span>
-            {highConfidencePending.length} high-confidence items can be
-            approved in one action
-          </span>
-          <button type="button" className="btn btn-sm" onClick={handleBatchApprove}>
-            Approve all high-confidence
-          </button>
-        </div>
-      )}
-
       {pending.length === 0 && held.length === 0 && revoked.length === 0 ? (
         renderDetailEmpty()
       ) : (
@@ -251,10 +221,10 @@ export function ReviewQueue() {
                 item={selectedItem}
                 records={records}
                 onApprove={() => handleApproveClick(selectedItem)}
-                onEdit={() => setEditingItem(selectedItem)}
                 onReject={() =>
                   setPendingAction({ type: 'reject', item: selectedItem })
                 }
+                onEditedApproved={() => setToast('Edited version approved.')}
               />
             ) : (
               renderDetailEmpty()
@@ -321,18 +291,6 @@ export function ReviewQueue() {
           description={`Why are you rejecting this action for ${pendingAction.item.targetRecord.displayName}?`}
           onConfirm={handleRejectConfirm}
           onCancel={() => setPendingAction(null)}
-        />
-      )}
-
-      {editingItem && (
-        <EditApprovePanel
-          item={editingItem}
-          records={records}
-          onClose={() => setEditingItem(null)}
-          onApproved={() => {
-            setEditingItem(null);
-            setToast('Edited version approved.');
-          }}
         />
       )}
 
