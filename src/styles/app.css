@@ -2344,7 +2344,7 @@
 }
 
 .matrix-override-active {
-  color: var(--color-warning-text);
+  color: var(--color-warning-text-strong);
 }
 
 .matrix-refine-link {
@@ -2397,8 +2397,9 @@
   align-items: center;
   gap: 4px;
   padding: 5px 12px;
-  border-radius: 2px;
-  font-size: 11px;
+  border-radius: 0;
+  font-family: var(--type-matrix-pill-font-family);
+  font-size: var(--type-matrix-pill-font-size);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2408,13 +2409,13 @@
 }
 
 .active-pill.override {
-  background: var(--color-yellow-1);
-  color: var(--color-yellow-4);
+  background: var(--color-white);
+  color: var(--color-warning-text-strong);
   border: 1px solid var(--color-warning-border);
 }
 
 .active-pill.never {
-  background: var(--color-red-1);
+  background: var(--color-white);
   color: var(--color-danger-text);
   border: 1px solid var(--color-danger-text);
 }

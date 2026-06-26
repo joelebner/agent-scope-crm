@@ -13,6 +13,7 @@
   --color-yellow-2: #FAE3C6;
   --color-yellow-3: #EFA329;
   --color-yellow-4: #E2951A;
+  --color-yellow-5: #EA8100;
 
   /* Grayscale */
   --color-white: #FFFFFF;
@@ -39,10 +40,17 @@
   --color-warning-bg: var(--color-yellow-1);
   --color-warning-border: var(--color-yellow-3);
   --color-warning-text: var(--color-yellow-4);
+  --color-warning-text-strong: var(--color-yellow-5);
   --color-danger-bg: var(--color-red-1);
   --color-danger-border: var(--color-red-3);
   --color-danger-text: var(--color-red-4);
   --color-held-bg: var(--color-gray-1);
   --color-held-border: var(--color-gray-4);
   --color-held-text: var(--color-gray-5);
+
+  /* Typography */
+  --font-family-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-size-mono-12: 12px;
+  --type-matrix-pill-font-family: var(--font-family-mono);
+  --type-matrix-pill-font-size: var(--font-size-mono-12);
 }

@@ -28,5 +28,5 @@ body {
 
 code,
 .mono {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-family-mono);
 }
