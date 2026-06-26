@@ -187,7 +187,7 @@ export function ActivityAudit() {
           <AnomalyCallouts onAdjustScope={handleAdjustScope} />
 
           <section className="audit-events-section">
-            <div className="event-log-header">
+            <div className="event-log-section-header">
               <h3 className="event-log-section-label mono">
                 EVENT LOG · {filteredEvents.length}
               </h3>
@@ -234,13 +234,22 @@ export function ActivityAudit() {
             {filteredEvents.length === 0 ? (
               <AuditEmptyState variant="no-events" />
             ) : (
-              <AuditEventList
-                events={filteredEvents}
-                users={users}
-                queueItems={queueItems}
-                selectedEventId={selectedEvent?.id ?? null}
-                onSelect={handleSelectEvent}
-              />
+              <div className="event-log-grid">
+                <div className="event-log-header" aria-hidden="true">
+                  <span className="event-log-header-cell">OUTCOME</span>
+                  <span className="event-log-header-cell">ACTION TYPE</span>
+                  <span className="event-log-header-cell">CONTACT</span>
+                  <span className="event-log-header-cell">ASSIGNEE</span>
+                  <span className="event-log-header-cell">TIMESTAMP</span>
+                </div>
+                <AuditEventList
+                  events={filteredEvents}
+                  users={users}
+                  queueItems={queueItems}
+                  selectedEventId={selectedEvent?.id ?? null}
+                  onSelect={handleSelectEvent}
+                />
+              </div>
             )}
           </section>
         </>

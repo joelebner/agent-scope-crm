@@ -87,7 +87,7 @@ export function ScopeMatrix({
                       {overrideActive && (
                         <span className="matrix-override-active">
                           {' '}
-                          · OVERRIDE ACTIVE
+                          · Override active
                         </span>
                       )}
                     </div>
