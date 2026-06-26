@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
 import { QueueListRow } from '../components/queue/QueueListRow';
 import { QueueDetailPane } from '../components/queue/QueueDetailPane';
-import { RevokedQueueItemCard } from '../components/queue/RevokedQueueItemCard';
 import { RejectModal } from '../components/queue/RejectModal';
 import { ConfirmModal } from '../components/queue/ConfirmModal';
 import { QueueEmptyState } from '../components/queue/QueueEmptyState';
@@ -31,9 +30,7 @@ export function ReviewQueue() {
 
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [showRevoked, setShowRevoked] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const prevRevokedCount = useRef(0);
 
   const repId =
     activeUser.role === 'rep' ? activeUser.id : 'user-jordan';
@@ -46,20 +43,9 @@ export function ReviewQueue() {
     (item) => item.assignedRep === repId && item.status === 'held',
   );
 
-  const revoked = queueItems.filter(
-    (item) => item.assignedRep === repId && item.status === 'revoked',
-  );
-
   const listItems = [...pending, ...held];
   const selectedItem =
     listItems.find((item) => item.id === selectedId) ?? null;
-
-  useEffect(() => {
-    if (revoked.length > prevRevokedCount.current) {
-      setShowRevoked(true);
-    }
-    prevRevokedCount.current = revoked.length;
-  }, [revoked.length]);
 
   useEffect(() => {
     setSelectedId((prev) => {
@@ -177,7 +163,7 @@ export function ReviewQueue() {
         </div>
       )}
 
-      {pending.length === 0 && held.length === 0 && revoked.length === 0 ? (
+      {pending.length === 0 && held.length === 0 ? (
         renderDetailEmpty()
       ) : (
         <div className="queue-master-detail">
@@ -231,40 +217,6 @@ export function ReviewQueue() {
             )}
           </div>
         </div>
-      )}
-
-      {revoked.length > 0 && (
-        <section className="queue-revoked-section">
-          <div className="revoked-section-header">
-            <h3 className="section-label">
-              Revoked by policy ({revoked.length})
-            </h3>
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => setShowRevoked(!showRevoked)}
-            >
-              {showRevoked ? 'Hide' : 'Show'}
-            </button>
-          </div>
-          {showRevoked && (
-            <div className="queue-list">
-              {revoked.map((item) => (
-                <RevokedQueueItemCard
-                  key={item.id}
-                  item={item}
-                  records={records}
-                />
-              ))}
-            </div>
-          )}
-          {!showRevoked && (
-            <p className="revoked-collapsed-hint">
-              {revoked.length} item{revoked.length > 1 ? 's' : ''} removed
-              from triage after a scope change.
-            </p>
-          )}
-        </section>
       )}
 
       {pendingAction?.type === 'approve' && (
