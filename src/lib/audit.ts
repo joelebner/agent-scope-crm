@@ -47,19 +47,10 @@ export interface AuditSummary {
 
 export function getDateRangeForPreset(preset: DateRangePreset): AuditDateRange {
   const end = new Date('2026-06-23T23:59:59.999Z');
-  const start = new Date(end);
+  const start = new Date('2026-06-23T00:00:00.000Z');
 
-  switch (preset) {
-    case '7d':
-      start.setUTCDate(start.getUTCDate() - 7);
-      break;
-    case '30d':
-      start.setUTCDate(start.getUTCDate() - 30);
-      break;
-    case '90d':
-      start.setUTCDate(start.getUTCDate() - 90);
-      break;
-  }
+  const dayCount = preset === '7d' ? 7 : preset === '30d' ? 30 : 90;
+  start.setUTCDate(start.getUTCDate() - (dayCount - 1));
 
   return { start: start.toISOString(), end: end.toISOString() };
 }
@@ -70,6 +61,18 @@ export function isAutoExecuted(item: QueueItem): boolean {
     item.resolvedAt !== null &&
     item.resolvedAt === item.generatedAt
   );
+}
+
+export function isEventAutoExecuted(
+  event: AuditEvent,
+  queueItems: QueueItem[],
+): boolean {
+  if (event.outcome !== 'approved') return false;
+  if (event.metadata.autoExecuted === true) return true;
+  if (!event.queueItemId) return false;
+
+  const item = queueItems.find((q) => q.id === event.queueItemId);
+  return item !== undefined && isAutoExecuted(item);
 }
 
 export function filterAuditEvents(
@@ -120,8 +123,7 @@ export function computeAuditSummary(
     byActionType[actionType] = (byActionType[actionType] ?? 0) + 1;
 
     if (event.outcome === 'approved') {
-      const item = queueItems.find((q) => q.id === event.queueItemId);
-      if (item && isAutoExecuted(item)) {
+      if (isEventAutoExecuted(event, queueItems)) {
         outcomes.auto_executed += 1;
       } else {
         outcomes.approved += 1;

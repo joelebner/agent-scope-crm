@@ -1,7 +1,7 @@
 import type { AuditEvent, ActionType, QueueItem } from '../../types';
 import type { User } from '../../types';
 import { getActionTypeLabel } from '../../store/useAppStore';
-import { formatAuditTimestamp, isAutoExecuted } from '../../lib/audit';
+import { formatAuditTimestamp, isEventAutoExecuted } from '../../lib/audit';
 
 interface AuditEventListProps {
   events: AuditEvent[];
@@ -20,8 +20,7 @@ function getOutcomeDisplay(
   }
 
   if (event.outcome === 'approved') {
-    const item = queueItems.find((q) => q.id === event.queueItemId);
-    if (item && isAutoExecuted(item)) {
+    if (isEventAutoExecuted(event, queueItems)) {
       return { label: 'AUTO-EXECUTED', className: 'auto-executed' };
     }
     return { label: 'APPROVED', className: 'approved' };

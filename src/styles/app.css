@@ -3224,6 +3224,37 @@
   text-align: right;
 }
 
+.event-log-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border-default);
+}
+
+.event-log-count {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.load-more-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.load-more-btn:hover {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+}
+
 .audit-content .stat-tiles,
 .audit-content .stat-tile,
 .audit-content .audit-summary-col,

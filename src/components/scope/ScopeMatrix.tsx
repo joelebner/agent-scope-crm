@@ -32,6 +32,7 @@ interface ScopeMatrixProps {
   scopeRules: ScopeRule[];
   highlightedActionType?: ActionType;
   readOnly?: boolean;
+  showRefineLink?: boolean;
   onSetDefault: (actionType: ActionType, level: AutonomyLevel) => void;
   onEditActionType: (actionType: ActionType) => void;
 }
@@ -40,6 +41,7 @@ export function ScopeMatrix({
   scopeRules,
   highlightedActionType,
   readOnly,
+  showRefineLink = true,
   onSetDefault,
   onEditActionType,
 }: ScopeMatrixProps) {
@@ -91,13 +93,15 @@ export function ScopeMatrix({
                         </span>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      className="matrix-refine-link mono"
-                      onClick={() => onEditActionType(actionType)}
-                    >
-                      REFINE →
-                    </button>
+                    {showRefineLink && (
+                      <button
+                        type="button"
+                        className="matrix-refine-link mono"
+                        onClick={() => onEditActionType(actionType)}
+                      >
+                        REFINE →
+                      </button>
+                    )}
                   </div>
                 </th>
                 {AUTONOMY_LEVELS.map((level) => {

@@ -1,4 +1,5 @@
 import type {
+  ActionType,
   Agent,
   AuditEvent,
   CrmRecord,
@@ -945,6 +946,179 @@ export const FIXTURE_QUEUE_ITEMS: QueueItem[] = [
   },
 ];
 
+type FixtureTarget = {
+  type: 'contact' | 'deal';
+  id: string;
+  displayName: string;
+};
+
+const SYNTH_TARGETS: FixtureTarget[] = [
+  { type: 'contact', id: 'contact-sarah-chen', displayName: 'Sarah Chen' },
+  { type: 'contact', id: 'contact-marcus-reed', displayName: 'Marcus Reed' },
+  { type: 'contact', id: 'contact-diana-foster', displayName: 'Diana Foster' },
+  { type: 'contact', id: 'contact-james-park', displayName: 'James Park' },
+  {
+    type: 'deal',
+    id: 'deal-meridian',
+    displayName: 'Meridian Health — Enterprise Expansion',
+  },
+  { type: 'deal', id: 'deal-novatech', displayName: 'NovaTech — Pilot Program' },
+  { type: 'deal', id: 'deal-apex', displayName: 'Apex Logistics — Renewal' },
+  {
+    type: 'deal',
+    id: 'deal-crestline',
+    displayName: 'Crestline Partners — Expansion',
+  },
+];
+
+const SYNTH_ACTION_TYPES: ActionType[] = [
+  'outreach_draft',
+  'field_update',
+  'sequence_enrollment',
+];
+
+const SYNTH_REPS = ['user-jordan', 'user-casey'] as const;
+
+type ResolvedOutcome = 'approved' | 'edited_approved' | 'rejected';
+
+function buildSyntheticAuditEvents(): AuditEvent[] {
+  let seq = 0;
+  const nextId = () => `audit-synth-${++seq}`;
+
+  const queueEvent = (
+    dayOffset: number,
+    hour: number,
+    minute: number,
+    outcome: ResolvedOutcome,
+    actionType: ActionType,
+    target: FixtureTarget,
+    actorId: (typeof SYNTH_REPS)[number],
+    autoExecuted = false,
+  ): AuditEvent => ({
+    id: nextId(),
+    eventType: 'queue_item_resolved',
+    queueItemId: null,
+    scopeRuleId: null,
+    outcome,
+    actorId,
+    actorRole: 'rep',
+    timestamp: d(dayOffset, hour, minute),
+    metadata: {
+      actionType,
+      targetRecord: target,
+      ...(autoExecuted ? { autoExecuted: true } : {}),
+    },
+  });
+
+  const ruleEvent = (
+    dayOffset: number,
+    hour: number,
+    actionType: ActionType,
+  ): AuditEvent => ({
+    id: nextId(),
+    eventType: 'scope_rule_changed',
+    queueItemId: null,
+    scopeRuleId: `rule-synth-${seq}`,
+    outcome: 'rule_updated',
+    actorId: 'user-alex',
+    actorRole: 'team_lead',
+    timestamp: d(dayOffset, hour),
+    metadata: {
+      actionType,
+      previousLevel: 'rep_review',
+      newLevel: 'auto_execute',
+    },
+  });
+
+  const events: AuditEvent[] = [];
+
+  const resolvedCycle: Array<{
+    outcome: ResolvedOutcome;
+    autoExecuted?: boolean;
+  }> = [
+    { outcome: 'rejected' },
+    { outcome: 'approved' },
+    { outcome: 'edited_approved' },
+    { outcome: 'approved', autoExecuted: true },
+  ];
+
+  const midDaySpecs: Array<[number, number, number]> = [
+    [-8, 11, 0],
+    [-9, 14, 30],
+    [-10, 9, 15],
+    [-11, 16, 0],
+    [-13, 10, 45],
+    [-14, 13, 0],
+    [-15, 9, 30],
+    [-16, 15, 0],
+    [-17, 11, 15],
+    [-18, 8, 0],
+    [-19, 14, 0],
+    [-20, 10, 30],
+    [-21, 16, 45],
+    [-22, 9, 0],
+    [-23, 13, 15],
+    [-24, 11, 0],
+    [-25, 15, 30],
+    [-26, 10, 0],
+    [-27, 14, 45],
+    [-28, 8, 30],
+    [-29, 12, 0],
+    [-30, 16, 15],
+    [-12, 11, 30],
+  ];
+
+  midDaySpecs.forEach(([dayOffset, hour, minute], index) => {
+    const { outcome, autoExecuted } = resolvedCycle[index % resolvedCycle.length]!;
+    events.push(
+      queueEvent(
+        dayOffset,
+        hour,
+        minute,
+        outcome,
+        SYNTH_ACTION_TYPES[index % SYNTH_ACTION_TYPES.length]!,
+        SYNTH_TARGETS[index % SYNTH_TARGETS.length]!,
+        SYNTH_REPS[index % SYNTH_REPS.length]!,
+        autoExecuted,
+      ),
+    );
+  });
+
+  for (let index = 0; index < 47; index += 1) {
+    const dayOffset = -31 - Math.round((index * 58) / 46);
+    const hour = 8 + (index % 10);
+    const minute = (index * 11) % 60;
+    const { outcome, autoExecuted } = resolvedCycle[index % resolvedCycle.length]!;
+    events.push(
+      queueEvent(
+        dayOffset,
+        hour,
+        minute,
+        outcome,
+        SYNTH_ACTION_TYPES[(index + 1) % SYNTH_ACTION_TYPES.length]!,
+        SYNTH_TARGETS[(index + 2) % SYNTH_TARGETS.length]!,
+        SYNTH_REPS[index % SYNTH_REPS.length]!,
+        autoExecuted,
+      ),
+    );
+  }
+
+  const ruleDaySpecs: Array<[number, number, ActionType]> = [
+    [-22, 10, 'sequence_enrollment'],
+    [-38, 11, 'outreach_draft'],
+    [-45, 9, 'field_update'],
+    [-57, 14, 'outreach_draft'],
+    [-68, 10, 'sequence_enrollment'],
+    [-82, 15, 'field_update'],
+  ];
+
+  ruleDaySpecs.forEach(([dayOffset, hour, actionType]) => {
+    events.push(ruleEvent(dayOffset, hour, actionType));
+  });
+
+  return events;
+}
+
 export const FIXTURE_AUDIT_EVENTS: AuditEvent[] = [
   // Derived from resolved queue items
   ...FIXTURE_QUEUE_ITEMS.filter((item) => item.resolvedAt !== null).map((item) => ({
@@ -1005,4 +1179,6 @@ export const FIXTURE_AUDIT_EVENTS: AuditEvent[] = [
       conditions: [{ dimension: 'deal_stage', operator: 'is', value: 'Negotiation' }],
     },
   },
+
+  ...buildSyntheticAuditEvents(),
 ];

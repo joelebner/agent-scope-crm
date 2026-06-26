@@ -54,7 +54,8 @@ export function ScopeBuilder() {
   );
   const [toast, setToast] = useState<string | null>(null);
 
-  const readOnly = activeUser.role !== 'team_lead';
+  const canEditMatrix =
+    activeUser.role === 'team_lead' || activeUser.role === 'manager';
   const conflicts = findConflictingRules(scopeRules);
   const highlightedActionType =
     focusActionType ?? scopeBuilderFilter?.actionType;
@@ -143,7 +144,7 @@ export function ScopeBuilder() {
   if (
     ONBOARDING_WIZARD_ENABLED &&
     !onboardingComplete &&
-    activeUser.role === 'team_lead'
+    canEditMatrix
   ) {
     return (
       <OnboardingWizard
@@ -157,7 +158,7 @@ export function ScopeBuilder() {
     );
   }
 
-  if (readOnly) {
+  if (activeUser.role === 'rep') {
     return (
       <div className="scope-builder">
       <div className="scope-builder-content">
@@ -168,6 +169,7 @@ export function ScopeBuilder() {
             scopeRules={scopeRules}
             highlightedActionType={highlightedActionType}
             readOnly
+            showRefineLink={false}
             onSetDefault={() => {}}
             onEditActionType={() => {}}
           />
@@ -183,6 +185,8 @@ export function ScopeBuilder() {
             />
           </section>
         </div>
+
+        <Toast message={toast} onClear={() => setToast(null)} />
       </div>
     );
   }
@@ -222,6 +226,8 @@ export function ScopeBuilder() {
           <ScopeMatrix
             scopeRules={scopeRules}
             highlightedActionType={highlightedActionType}
+            readOnly={!canEditMatrix}
+            showRefineLink={canEditMatrix}
             onSetDefault={handleSetDefault}
             onEditActionType={handleRefineActionType}
           />

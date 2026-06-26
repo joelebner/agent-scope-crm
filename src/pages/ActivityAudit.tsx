@@ -23,6 +23,7 @@ import type { AuditEvent, ActionType, QueueItem } from '../types';
 type AuditTab = 'activity' | 'awaiting';
 
 const PERIOD_PRESETS: DateRangePreset[] = ['7d', '30d', '90d'];
+const EVENT_LOG_PAGE_SIZE = 25;
 
 export function ActivityAudit() {
   const { eventId } = useParams();
@@ -48,6 +49,7 @@ export function ActivityAudit() {
     null,
   );
   const [toast, setToast] = useState<string | null>(null);
+  const [visibleEventCount, setVisibleEventCount] = useState(EVENT_LOG_PAGE_SIZE);
 
   const isManager = activeUser.role === 'manager';
 
@@ -65,6 +67,15 @@ export function ActivityAudit() {
     () => computeAuditSummary(rangeEvents, queueItems),
     [rangeEvents, queueItems],
   );
+
+  const visibleEvents = useMemo(
+    () => filteredEvents.slice(0, visibleEventCount),
+    [filteredEvents, visibleEventCount],
+  );
+
+  useEffect(() => {
+    setVisibleEventCount(EVENT_LOG_PAGE_SIZE);
+  }, [filters.preset, filters.repId, filters.actionType, filters.outcome]);
 
   const awaitingItems = queueItems.filter(
     (item) => item.status === 'awaiting_manager_approval',
@@ -128,6 +139,10 @@ export function ActivityAudit() {
     setActiveUserByRole('team_lead');
     navigate('/scope');
     setToast('Opened Scope Builder with filter applied.');
+  };
+
+  const handleLoadMoreEvents = () => {
+    setVisibleEventCount((count) => count + EVENT_LOG_PAGE_SIZE);
   };
 
   return (
@@ -243,12 +258,26 @@ export function ActivityAudit() {
                   <span className="event-log-header-cell">TIMESTAMP</span>
                 </div>
                 <AuditEventList
-                  events={filteredEvents}
+                  events={visibleEvents}
                   users={users}
                   queueItems={queueItems}
                   selectedEventId={selectedEvent?.id ?? null}
                   onSelect={handleSelectEvent}
                 />
+                <div className="event-log-footer">
+                  <div className="event-log-count">
+                    Showing {visibleEvents.length} of {filteredEvents.length}
+                  </div>
+                  {visibleEvents.length < filteredEvents.length && (
+                    <button
+                      type="button"
+                      className="load-more-btn"
+                      onClick={handleLoadMoreEvents}
+                    >
+                      Load more
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </section>
