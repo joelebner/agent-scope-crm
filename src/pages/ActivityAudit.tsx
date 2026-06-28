@@ -75,7 +75,24 @@ export function ActivityAudit() {
 
   useEffect(() => {
     setVisibleEventCount(EVENT_LOG_PAGE_SIZE);
-  }, [filters.preset, filters.repId, filters.actionType, filters.outcome]);
+  }, [filters.preset]);
+
+  useEffect(() => {
+    const scrollContainer = document.querySelector('.page-content');
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      if (scrollHeight - scrollTop - clientHeight < 200) {
+        setVisibleEventCount((prev) =>
+          Math.min(prev + EVENT_LOG_PAGE_SIZE, filteredEvents.length),
+        );
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [filteredEvents.length]);
 
   const awaitingItems = queueItems.filter(
     (item) => item.status === 'awaiting_manager_approval',
@@ -139,10 +156,6 @@ export function ActivityAudit() {
     setActiveUserByRole('team_lead');
     navigate('/scope');
     setToast('Opened Scope Builder with filter applied.');
-  };
-
-  const handleLoadMoreEvents = () => {
-    setVisibleEventCount((count) => count + EVENT_LOG_PAGE_SIZE);
   };
 
   return (
@@ -250,6 +263,9 @@ export function ActivityAudit() {
               <AuditEmptyState variant="no-events" />
             ) : (
               <div className="event-log-grid">
+                <div className="event-log-count">
+                  Showing {visibleEvents.length} of {filteredEvents.length}
+                </div>
                 <div className="event-log-header" aria-hidden="true">
                   <span className="event-log-header-cell">OUTCOME</span>
                   <span className="event-log-header-cell">ACTION TYPE</span>
@@ -264,20 +280,6 @@ export function ActivityAudit() {
                   selectedEventId={selectedEvent?.id ?? null}
                   onSelect={handleSelectEvent}
                 />
-                <div className="event-log-footer">
-                  <div className="event-log-count">
-                    Showing {visibleEvents.length} of {filteredEvents.length}
-                  </div>
-                  {visibleEvents.length < filteredEvents.length && (
-                    <button
-                      type="button"
-                      className="load-more-btn"
-                      onClick={handleLoadMoreEvents}
-                    >
-                      Load more
-                    </button>
-                  )}
-                </div>
               </div>
             )}
           </section>

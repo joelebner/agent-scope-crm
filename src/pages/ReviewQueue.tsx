@@ -9,6 +9,7 @@ import { QueueEmptyState } from '../components/queue/QueueEmptyState';
 import { Toast } from '../components/ui/Toast';
 import type { QueueItem } from '../types';
 import type { RejectionCategory } from '../types';
+import { QUEUE_APPROVE_ANIMATION_MS } from '../lib/queueAnimation';
 
 type PendingAction =
   | { type: 'approve'; item: QueueItem }
@@ -31,6 +32,9 @@ export function ReviewQueue() {
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [approvingItemIds, setApprovingItemIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const repId =
     activeUser.role === 'rep' ? activeUser.id : 'user-jordan';
@@ -60,19 +64,35 @@ export function ReviewQueue() {
   const needsConfirm = (item: QueueItem) =>
     item.flags.sensitiveContact || item.flags.dataStale;
 
+  const runApprovalWithAnimation = (itemId: string) => {
+    setApprovingItemIds((prev) => new Set(prev).add(itemId));
+
+    window.setTimeout(() => {
+      approveQueueItem(itemId);
+      setToast('Action approved and queued for execution.');
+      setApprovingItemIds((prev) => {
+        const next = new Set(prev);
+        next.delete(itemId);
+        return next;
+      });
+    }, QUEUE_APPROVE_ANIMATION_MS);
+  };
+
   const handleApproveClick = (item: QueueItem) => {
+    if (approvingItemIds.has(item.id)) return;
+
     if (needsConfirm(item)) {
       setPendingAction({ type: 'approve', item });
     } else {
-      approveQueueItem(item.id);
-      setToast('Action approved and queued for execution.');
+      runApprovalWithAnimation(item.id);
     }
   };
 
   const handleConfirmApprove = () => {
     if (pendingAction?.type === 'approve') {
-      approveQueueItem(pendingAction.item.id);
-      setToast('Action approved and queued for execution.');
+      if (!approvingItemIds.has(pendingAction.item.id)) {
+        runApprovalWithAnimation(pendingAction.item.id);
+      }
     }
     setPendingAction(null);
   };
@@ -178,6 +198,7 @@ export function ReviewQueue() {
                     key={item.id}
                     item={item}
                     selected={selectedId === item.id}
+                    isApproving={approvingItemIds.has(item.id)}
                     onSelect={() => setSelectedId(item.id)}
                   />
                 ))}
@@ -206,6 +227,7 @@ export function ReviewQueue() {
               <QueueDetailPane
                 item={selectedItem}
                 records={records}
+                isApproving={approvingItemIds.has(selectedItem.id)}
                 onApprove={() => handleApproveClick(selectedItem)}
                 onReject={() =>
                   setPendingAction({ type: 'reject', item: selectedItem })

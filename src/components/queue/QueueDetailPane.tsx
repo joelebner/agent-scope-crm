@@ -9,6 +9,7 @@ import {
   textToOutreach,
 } from '../../lib/format';
 import { WritingAssistant } from './WritingAssistant';
+import { ApprovalCheckIcon } from './ApprovalCheckIcon';
 
 function getActionTypeLabel(actionType: QueueItem['actionType']): string {
   return actionType.replace(/_/g, ' ').toUpperCase();
@@ -28,6 +29,7 @@ function getConfidenceValue(score: QueueItem['confidenceScore']): string {
 interface QueueDetailPaneProps {
   item: QueueItem;
   records: CrmRecord[];
+  isApproving?: boolean;
   onApprove: () => void;
   onReject: () => void;
   onEditedApproved?: () => void;
@@ -36,6 +38,7 @@ interface QueueDetailPaneProps {
 export function QueueDetailPane({
   item,
   records,
+  isApproving = false,
   onApprove,
   onReject,
   onEditedApproved,
@@ -277,7 +280,10 @@ export function QueueDetailPane({
             <div className="queue-detail-meta mono">
               {getActionTypeLabel(item.actionType)} · {getItemDisplayId(item.id)}
             </div>
-            <h2 className="queue-detail-title">{item.targetRecord.displayName}</h2>
+            <div className="queue-detail-title-row">
+              <h2 className="queue-detail-title">{item.targetRecord.displayName}</h2>
+              {isApproving && <ApprovalCheckIcon />}
+            </div>
             <p className="queue-detail-subtitle mono">
               Contact · Generated {formatRelativeTime(item.generatedAt)}
             </p>
@@ -309,7 +315,14 @@ export function QueueDetailPane({
         <div className="queue-detail-divider" aria-hidden="true" />
 
         {isPending && (
-          <div className="queue-detail-actions">
+          <div
+            className={[
+              'queue-detail-actions',
+              isApproving ? 'approving' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
             <div className="action-button-group">
               {isEditing ? (
                 <>
@@ -334,6 +347,7 @@ export function QueueDetailPane({
                     type="button"
                     className="queue-detail-approve"
                     onClick={onApprove}
+                    disabled={isApproving}
                   >
                     Approve &amp; Execute
                   </button>
@@ -341,6 +355,7 @@ export function QueueDetailPane({
                     type="button"
                     className="queue-detail-btn-reject"
                     onClick={onReject}
+                    disabled={isApproving}
                   >
                     Reject
                   </button>

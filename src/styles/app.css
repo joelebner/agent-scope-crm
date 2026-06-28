@@ -91,17 +91,18 @@
   color: var(--color-gray-6);
   font-size: 13px;
   font-weight: 500;
-  transition: none;
+  transition: background 100ms ease-in;
 }
 
-.nav-link:hover {
-  background: transparent;
+.nav-link:not(.active):hover {
+  background: var(--color-gray-2);
   color: var(--color-gray-6);
 }
 
 .nav-link.active {
   background: var(--color-black);
   color: var(--color-white);
+  transition: none;
 }
 
 .nav-link.active:hover {
@@ -459,6 +460,61 @@
   height: 12px;
   color: var(--color-text-primary);
   pointer-events: none;
+}
+
+/* ── Radio button ──────────────────────────────────────────────── */
+
+.radio-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--radio-gap);
+  cursor: pointer;
+}
+
+.radio-field:has(.radio-input:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.radio-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.radio-control {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: var(--radio-size);
+  height: var(--radio-size);
+  border-radius: 50%;
+  background: var(--radio-fill);
+  border: var(--radio-border-width) solid var(--radio-border-color);
+  transition: border-width 100ms ease-in, border-color 100ms ease-in;
+}
+
+.radio-input:checked + .radio-control {
+  border-width: var(--radio-border-width-selected);
+  border-color: var(--radio-border-color-selected);
+}
+
+.radio-input:focus-visible + .radio-control {
+  outline: 2px solid var(--color-black);
+  outline-offset: 2px;
+}
+
+.radio-label {
+  font-size: var(--radio-label-size);
+  font-weight: var(--radio-label-weight);
+  line-height: normal;
+  color: var(--radio-label-color);
+  white-space: nowrap;
 }
 
 .page-content {
@@ -988,6 +1044,84 @@
   color: var(--color-danger-border);
 }
 
+.queue-list-row-shell {
+  display: block;
+  background: var(--color-surface-default);
+}
+
+@keyframes card-approve-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0 0 0 0);
+  }
+  28% {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0 0 0 0);
+  }
+  70% {
+    opacity: 0.2;
+    transform: translateY(-8px);
+    clip-path: inset(0 0 100% 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+    clip-path: inset(0 0 100% 0);
+  }
+}
+
+@keyframes card-approve-shell-collapse {
+  0%,
+  28% {
+    max-height: 300px;
+  }
+  100% {
+    max-height: 0;
+  }
+}
+
+.queue-list-row-shell.approving {
+  overflow: hidden;
+  animation: card-approve-shell-collapse var(--queue-approve-duration)
+    cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.queue-list-row.approving {
+  animation: card-approve-out var(--queue-approve-duration)
+    cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow: hidden;
+  min-height: 0;
+  border-left: 2px solid #0ACD00;
+  border-bottom: 1px solid #0ACD00;
+  background: var(--color-surface-default);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .queue-list-row-shell.approving {
+    animation: none;
+    max-height: 0;
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+
+  .queue-list-row.approving {
+    animation: none;
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+}
+
+.queue-list-row.approving.selected::before {
+  background: #0ACD00;
+}
+
+.queue-list-row.approving .queue-list-tag {
+  color: #22c55e;
+}
+
 .queue-list-time {
   font-size: 10px;
   font-weight: 400;
@@ -1104,13 +1238,54 @@
   color: var(--color-text-secondary);
 }
 
-.queue-detail-title {
+.queue-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 3px;
+  min-width: 0;
+}
+
+.queue-detail-title {
+  margin: 0;
   font-size: 28px;
   font-weight: 700;
   letter-spacing: 0;
   line-height: normal;
   color: var(--color-text-primary);
+  min-width: 0;
+}
+
+.queue-detail-approval-check {
+  flex-shrink: 0;
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  animation: detail-approve-check-in var(--queue-approve-duration)
+    cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes detail-approve-check-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  28% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .queue-detail-approval-check {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .queue-detail-subtitle {
@@ -1462,6 +1637,11 @@
 
 .queue-detail-actions {
   padding-top: 24px;
+}
+
+.queue-detail-actions.approving {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .action-button-group,
@@ -3104,6 +3284,12 @@
   padding-top: 10px;
 }
 
+.event-log-count {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
 .event-log-header {
   display: grid;
   grid-template-columns: 140px 140px 1fr 140px 120px;
@@ -3222,37 +3408,6 @@
   font-size: 12px;
   color: var(--color-text-muted);
   text-align: right;
-}
-
-.event-log-footer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 0;
-  border-top: 1px solid var(--color-border-default);
-}
-
-.event-log-count {
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.load-more-btn {
-  background: none;
-  border: none;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: 0;
-}
-
-.load-more-btn:hover {
-  color: var(--color-text-primary);
-  text-decoration: underline;
 }
 
 .audit-content .stat-tiles,

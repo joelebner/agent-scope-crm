@@ -1,4 +1,7 @@
 :root {
+  /* Animation — keep in sync with QUEUE_APPROVE_ANIMATION_MS in lib/queueAnimation.ts */
+  --queue-approve-duration: 280ms;
+
   /* Brand */
   --color-active: #4E46E4;
 
@@ -53,4 +56,16 @@
   --font-size-mono-12: 12px;
   --type-matrix-pill-font-family: var(--font-family-mono);
   --type-matrix-pill-font-size: var(--font-size-mono-12);
+
+  /* Radio button — Figma: RadioButton (24:455) */
+  --radio-size: 24px;
+  --radio-gap: 10px;
+  --radio-border-width: 2px;
+  --radio-border-width-selected: 8px;
+  --radio-border-color: var(--color-gray-3);
+  --radio-border-color-selected: var(--color-black);
+  --radio-fill: var(--color-white);
+  --radio-label-size: 13px;
+  --radio-label-weight: 700;
+  --radio-label-color: var(--color-gray-7);
 }

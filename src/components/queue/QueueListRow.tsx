@@ -23,51 +23,64 @@ function getRowTag(item: QueueItem): string {
 interface QueueListRowProps {
   item: QueueItem;
   selected: boolean;
+  isApproving?: boolean;
   onSelect: () => void;
 }
 
-export function QueueListRow({ item, selected, onSelect }: QueueListRowProps) {
+export function QueueListRow({
+  item,
+  selected,
+  isApproving = false,
+  onSelect,
+}: QueueListRowProps) {
   const isSensitive = item.flags.sensitiveContact;
   const isStale = item.flags.dataStale;
 
   return (
-    <button
-      type="button"
-      className={[
-        'queue-list-row',
-        selected ? 'selected' : '',
-        isSensitive ? 'sensitive' : '',
-        isStale ? 'stale' : '',
-      ]
+    <div
+      className={['queue-list-row-shell', isApproving ? 'approving' : '']
         .filter(Boolean)
         .join(' ')}
-      onClick={onSelect}
     >
-      <div className="queue-list-row-body">
-        <div className="queue-list-row-top">
-          <span className="queue-list-tag mono">{getRowTag(item)}</span>
-          <span className="queue-list-time mono">
-            {formatRelativeTime(item.generatedAt)}
-          </span>
+      <button
+        type="button"
+        className={[
+          'queue-list-row',
+          selected ? 'selected' : '',
+          isApproving ? 'approving' : '',
+          isSensitive ? 'sensitive' : '',
+          isStale ? 'stale' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        onClick={onSelect}
+      >
+        <div className="queue-list-row-body">
+          <div className="queue-list-row-top">
+            <span className="queue-list-tag mono">{getRowTag(item)}</span>
+            <span className="queue-list-time mono">
+              {formatRelativeTime(item.generatedAt)}
+            </span>
+          </div>
+          <div className="queue-list-name">{item.targetRecord.displayName}</div>
+          <p className="queue-list-snippet">{item.agentReasoning}</p>
         </div>
-        <div className="queue-list-name">{item.targetRecord.displayName}</div>
-        <p className="queue-list-snippet">{item.agentReasoning}</p>
-      </div>
-      <div className="queue-list-badges">
-        <span className="queue-conf-badge mono">
-          {getConfidenceLabel(item.confidenceScore)}
-        </span>
-        {item.flags.dataStale && (
-          <span className="queue-flag-badge queue-flag-stale mono">
-            STALE
+        <div className="queue-list-badges">
+          <span className="queue-conf-badge mono">
+            {getConfidenceLabel(item.confidenceScore)}
           </span>
-        )}
-        {isSensitive && (
-          <span className="queue-flag-badge queue-flag-flagged mono">
-            FLAGGED
-          </span>
-        )}
-      </div>
-    </button>
+          {item.flags.dataStale && (
+            <span className="queue-flag-badge queue-flag-stale mono">
+              STALE
+            </span>
+          )}
+          {isSensitive && (
+            <span className="queue-flag-badge queue-flag-flagged mono">
+              FLAGGED
+            </span>
+          )}
+        </div>
+      </button>
+    </div>
   );
 }
