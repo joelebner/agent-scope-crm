@@ -36,10 +36,17 @@ export function RejectModal({
   };
 
   return (
-    <aside
-      className={['rejection-panel', open ? 'open' : ''].filter(Boolean).join(' ')}
-      aria-label={title}
-    >
+    <>
+      <div
+        className="rejection-panel-overlay"
+        onClick={onCancel}
+        aria-hidden="true"
+      />
+      <aside
+        className={['rejection-panel', open ? 'open' : ''].filter(Boolean).join(' ')}
+        onClick={(e) => e.stopPropagation()}
+        aria-label={title}
+      >
       <div className="rejection-panel-header">
         <div className="rejection-panel-eyebrow mono">{description}</div>
         <h2 className="rejection-panel-title">{title}</h2>
@@ -97,11 +104,16 @@ export function RejectModal({
           <button type="button" className="btn-secondary rejection-panel-cancel" onClick={onCancel}>
             Cancel
           </button>
-          <button type="submit" className="btn-submit-rejection">
+          <button
+            type="submit"
+            className="btn-submit-rejection"
+            disabled={!selectedReason}
+          >
             Submit Rejection
           </button>
         </div>
       </form>
     </aside>
+    </>
   );
 }
