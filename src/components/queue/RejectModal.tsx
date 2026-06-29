@@ -1,7 +1,7 @@
+import { useEffect, useState } from 'react';
 import { REJECTION_CATEGORIES } from '../../types';
 import type { RejectionCategory } from '../../types';
 import { getRejectionLabel } from '../../lib/format';
-import { Select } from '../ui/Select';
 
 interface RejectModalProps {
   title: string;
@@ -16,53 +16,92 @@ export function RejectModal({
   onConfirm,
   onCancel,
 }: RejectModalProps) {
+  const [open, setOpen] = useState(false);
+  const [selectedReason, setSelectedReason] = useState<RejectionCategory | ''>(
+    '',
+  );
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setOpen(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedReason) return;
+
     const form = new FormData(e.currentTarget);
-    const reason = form.get('reason') as RejectionCategory;
     const note = (form.get('note') as string) ?? '';
-    onConfirm(reason, note);
+    onConfirm(selectedReason, note);
   };
 
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>{title}</h3>
-        <p>{description}</p>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="reason">Rejection reason</label>
-            <Select id="reason" name="reason" required defaultValue="" fullWidth>
-              <option value="" disabled>
-                Select a reason
-              </option>
-              {REJECTION_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {getRejectionLabel(cat)}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="form-group">
-            <label htmlFor="note">Note (optional)</label>
-            <textarea
-              id="note"
-              name="note"
-              maxLength={140}
-              placeholder="Brief context for the team lead"
-            />
-            <div className="char-count">140 characters max</div>
-          </div>
-          <div className="modal-actions">
-            <button type="button" className="btn" onClick={onCancel}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-danger">
-              Reject
-            </button>
-          </div>
-        </form>
+    <aside
+      className={['rejection-panel', open ? 'open' : ''].filter(Boolean).join(' ')}
+      aria-label={title}
+    >
+      <div className="rejection-panel-header">
+        <div className="rejection-panel-eyebrow mono">{description}</div>
+        <h2 className="rejection-panel-title">{title}</h2>
+        <button
+          type="button"
+          className="rejection-panel-close"
+          onClick={onCancel}
+          aria-label="Close"
+        >
+          ×
+        </button>
       </div>
-    </div>
+
+      <form className="rejection-panel-form" onSubmit={handleSubmit}>
+        <div className="rejection-panel-body">
+          <h3 className="rejection-panel-section-label mono">Reject Reason</h3>
+          <div className="rejection-options" role="radiogroup" aria-label="Reject reason">
+            {REJECTION_CATEGORIES.map((category) => {
+              const selected = selectedReason === category;
+
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  className={['rejection-card', selected ? 'selected' : '']
+                    .filter(Boolean)
+                    .join(' ')}
+                  onClick={() => setSelectedReason(category)}
+                  aria-pressed={selected}
+                >
+                  <span
+                    className={['rejection-radio', selected ? 'selected' : '']
+                      .filter(Boolean)
+                      .join(' ')}
+                    aria-hidden="true"
+                  />
+                  <span className="rejection-card-label">
+                    {getRejectionLabel(category)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <textarea
+            id="note"
+            name="note"
+            className="rejection-note"
+            maxLength={140}
+            placeholder="Optional note (Max 140 characters)"
+          />
+        </div>
+
+        <div className="rejection-panel-footer">
+          <button type="button" className="btn-secondary rejection-panel-cancel" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="submit" className="btn-submit-rejection">
+            Submit Rejection
+          </button>
+        </div>
+      </form>
+    </aside>
   );
 }

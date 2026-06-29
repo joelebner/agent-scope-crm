@@ -205,7 +205,11 @@ export function AuditDrillDown({
         {showDeny && (
           <RejectModal
             title="Deny manager approval"
-            description="Provide a reason for denying this action."
+            description={
+              queueItem
+                ? `${queueItem.actionType.replace(/_/g, ' ').toUpperCase()} · #Q_${queueItem.id.split('-').pop()}`
+                : 'MANAGER APPROVAL'
+            }
             onConfirm={handleDeny}
             onCancel={() => setShowDeny(false)}
           />

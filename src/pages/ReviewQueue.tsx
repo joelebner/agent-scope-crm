@@ -261,8 +261,8 @@ export function ReviewQueue() {
 
       {pendingAction?.type === 'reject' && (
         <RejectModal
-          title="Reject recommendation"
-          description={`Why are you rejecting this action for ${pendingAction.item.targetRecord.displayName}?`}
+          title="Confirm Rejection"
+          description={`${pendingAction.item.actionType.replace(/_/g, ' ').toUpperCase()} · #Q_${pendingAction.item.id.split('-').pop()}`}
           onConfirm={handleRejectConfirm}
           onCancel={() => setPendingAction(null)}
         />
