@@ -9,12 +9,14 @@ export default async function handler(
   }
 
   try {
+    console.log('API key present:', !!process.env.ANTHROPIC_API_KEY);
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'anthropic-version': '2023-06-01',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'x-api-key': process.env.ANTHROPIC_API_KEY ?? '',
       },
       body: JSON.stringify(req.body),
     });
