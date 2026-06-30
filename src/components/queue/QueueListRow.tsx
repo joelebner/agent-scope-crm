@@ -1,5 +1,5 @@
 import type { QueueItem } from '../../types';
-import { formatRelativeTime } from '../../lib/format';
+import { formatRelativeTime, parseTargetRecordDisplayName } from '../../lib/format';
 
 function getActionTypeTag(actionType: QueueItem['actionType']): string {
   return `[${actionType.toUpperCase()}]`;
@@ -35,6 +35,7 @@ export function QueueListRow({
 }: QueueListRowProps) {
   const isSensitive = item.flags.sensitiveContact;
   const isStale = item.flags.dataStale;
+  const { paneTitle } = parseTargetRecordDisplayName(item.targetRecord.displayName);
 
   return (
     <div
@@ -62,7 +63,7 @@ export function QueueListRow({
               {formatRelativeTime(item.generatedAt)}
             </span>
           </div>
-          <div className="queue-list-name">{item.targetRecord.displayName}</div>
+          <div className="queue-list-name">{paneTitle}</div>
           <p className="queue-list-snippet">{item.agentReasoning}</p>
         </div>
         <div className="queue-list-badges">

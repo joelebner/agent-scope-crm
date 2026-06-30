@@ -16,6 +16,7 @@ interface WritingAssistantProps {
   currentDraft: string;
   onAccept: (text: string) => void;
   compact?: boolean;
+  acceptLabel?: string;
 }
 
 export function WritingAssistant({
@@ -26,6 +27,7 @@ export function WritingAssistant({
   currentDraft,
   onAccept,
   compact = false,
+  acceptLabel = 'Accept',
 }: WritingAssistantProps) {
   const [mode, setMode] = useState<WritingAssistantMode>('tighten');
   const [tone, setTone] = useState<ToneRegister>('conversational');
@@ -133,7 +135,7 @@ export function WritingAssistant({
                 setSuggestion(null);
               }}
             >
-              Accept
+              {acceptLabel}
             </button>
             <button
               type="button"

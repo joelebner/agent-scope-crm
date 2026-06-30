@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
 import { QueueListRow } from '../components/queue/QueueListRow';
 import { QueueDetailPane } from '../components/queue/QueueDetailPane';
+import { WritingAssistantPanel } from '../components/queue/WritingAssistantPanel';
 import { RejectModal } from '../components/queue/RejectModal';
 import { ConfirmModal } from '../components/queue/ConfirmModal';
 import { QueueEmptyState } from '../components/queue/QueueEmptyState';
 import { Toast } from '../components/ui/Toast';
-import type { QueueItem } from '../types';
+import type { DraftContent, QueueItem } from '../types';
 import type { RejectionCategory } from '../types';
+import { isOutreachContent } from '../lib/format';
 import { QUEUE_APPROVE_ANIMATION_MS } from '../lib/queueAnimation';
 
 type PendingAction =
@@ -24,6 +26,7 @@ export function ReviewQueue() {
   const agentPauseUntil = useAppStore((s) => s.agentPauseUntil);
   const activeUser = useAppStore((s) => s.getActiveUser());
   const approveQueueItem = useAppStore((s) => s.approveQueueItem);
+  const editAndApproveQueueItem = useAppStore((s) => s.editAndApproveQueueItem);
   const rejectQueueItem = useAppStore((s) => s.rejectQueueItem);
   const setAgentEnabled = useAppStore((s) => s.setAgentEnabled);
   const resumeAgent = useAppStore((s) => s.resumeAgent);
@@ -35,6 +38,10 @@ export function ReviewQueue() {
   const [approvingItemIds, setApprovingItemIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [isEditing, setIsEditing] = useState(false);
+  const [editSubject, setEditSubject] = useState('');
+  const [editBody, setEditBody] = useState('');
+  const [writingHelpOpen, setWritingHelpOpen] = useState(false);
 
   const repId =
     activeUser.role === 'rep' ? activeUser.id : 'user-jordan';
@@ -59,6 +66,31 @@ export function ReviewQueue() {
     });
   }, [listItems]);
 
+  useEffect(() => {
+    setIsEditing(false);
+    setEditSubject('');
+    setEditBody('');
+    setWritingHelpOpen(false);
+  }, [selectedId]);
+
+  const resetEditState = () => {
+    setIsEditing(false);
+    setEditSubject('');
+    setEditBody('');
+    setWritingHelpOpen(false);
+  };
+
+  const handleStartEdit = () => {
+    if (!selectedItem?.draftContent || !isOutreachContent(selectedItem.draftContent)) {
+      return;
+    }
+
+    const draft = selectedItem.draftContent;
+    setEditSubject(draft.channel === 'email' ? (draft.subject ?? '') : '');
+    setEditBody(draft.body);
+    setIsEditing(true);
+  };
+
   const isGloballyPaused = agent.status === 'paused' && agentPauseUntil;
 
   const needsConfirm = (item: QueueItem) =>
@@ -70,6 +102,23 @@ export function ReviewQueue() {
     window.setTimeout(() => {
       approveQueueItem(itemId);
       setToast('Action approved and queued for execution.');
+      setApprovingItemIds((prev) => {
+        const next = new Set(prev);
+        next.delete(itemId);
+        return next;
+      });
+    }, QUEUE_APPROVE_ANIMATION_MS);
+  };
+
+  const runEditApprovalWithAnimation = (
+    itemId: string,
+    editedContent: DraftContent,
+  ) => {
+    setApprovingItemIds((prev) => new Set(prev).add(itemId));
+
+    window.setTimeout(() => {
+      editAndApproveQueueItem(itemId, editedContent);
+      setToast('Edited version approved.');
       setApprovingItemIds((prev) => {
         const next = new Set(prev);
         next.delete(itemId);
@@ -103,6 +152,22 @@ export function ReviewQueue() {
       setToast('Rejection recorded. Signal sent to team lead.');
     }
     setPendingAction(null);
+  };
+
+  const handleRejectClick = (item: QueueItem) => {
+    setWritingHelpOpen(false);
+    setPendingAction({ type: 'reject', item });
+  };
+
+  const handleWritingHelpClick = () => {
+    setPendingAction(null);
+    setWritingHelpOpen(true);
+  };
+
+  const handleEditApprove = (content: DraftContent) => {
+    if (!selectedItem || approvingItemIds.has(selectedItem.id)) return;
+    resetEditState();
+    runEditApprovalWithAnimation(selectedItem.id, content);
   };
 
   const renderDetailEmpty = () => {
@@ -228,11 +293,17 @@ export function ReviewQueue() {
                 item={selectedItem}
                 records={records}
                 isApproving={approvingItemIds.has(selectedItem.id)}
+                isEditing={isEditing}
+                editSubject={editSubject}
+                editBody={editBody}
+                onEditSubjectChange={setEditSubject}
+                onEditBodyChange={setEditBody}
+                onStartEdit={handleStartEdit}
+                onCancelEdit={resetEditState}
                 onApprove={() => handleApproveClick(selectedItem)}
-                onReject={() =>
-                  setPendingAction({ type: 'reject', item: selectedItem })
-                }
-                onEditedApproved={() => setToast('Edited version approved.')}
+                onReject={() => handleRejectClick(selectedItem)}
+                onEditApprove={handleEditApprove}
+                onWritingHelpClick={handleWritingHelpClick}
               />
             ) : (
               renderDetailEmpty()
@@ -256,6 +327,21 @@ export function ReviewQueue() {
           confirmLabel="Approve anyway"
           onConfirm={handleConfirmApprove}
           onCancel={() => setPendingAction(null)}
+        />
+      )}
+
+      {writingHelpOpen && selectedItem && isEditing && (
+        <WritingAssistantPanel
+          item={selectedItem}
+          records={records}
+          editSubject={editSubject}
+          editBody={editBody}
+          onClose={() => setWritingHelpOpen(false)}
+          onAccept={(subject, body) => {
+            setEditSubject(subject);
+            setEditBody(body);
+            setWritingHelpOpen(false);
+          }}
         />
       )}
 

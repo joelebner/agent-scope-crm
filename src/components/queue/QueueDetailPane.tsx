@@ -1,14 +1,11 @@
-import { useEffect, useState } from 'react';
-import type { QueueItem } from '../../types';
-import type { CrmRecord, DraftContent } from '../../types';
-import { useAppStore } from '../../store';
+import type { DraftContent, QueueItem } from '../../types';
+import type { CrmRecord } from '../../types';
 import {
+  formatPaneContactSubtitle,
   formatRelativeTime,
   isOutreachContent,
-  outreachToText,
-  textToOutreach,
+  parseTargetRecordDisplayName,
 } from '../../lib/format';
-import { WritingAssistant } from './WritingAssistant';
 import { ApprovalCheckIcon } from './ApprovalCheckIcon';
 
 function getActionTypeLabel(actionType: QueueItem['actionType']): string {
@@ -30,93 +27,59 @@ interface QueueDetailPaneProps {
   item: QueueItem;
   records: CrmRecord[];
   isApproving?: boolean;
+  isEditing: boolean;
+  editSubject: string;
+  editBody: string;
+  onEditSubjectChange: (value: string) => void;
+  onEditBodyChange: (value: string) => void;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
   onApprove: () => void;
   onReject: () => void;
-  onEditedApproved?: () => void;
+  onEditApprove: (content: DraftContent) => void;
+  onWritingHelpClick: () => void;
 }
 
 export function QueueDetailPane({
   item,
   records,
   isApproving = false,
+  isEditing,
+  editSubject,
+  editBody,
+  onEditSubjectChange,
+  onEditBodyChange,
+  onStartEdit,
+  onCancelEdit,
   onApprove,
   onReject,
-  onEditedApproved,
+  onEditApprove,
+  onWritingHelpClick,
 }: QueueDetailPaneProps) {
-  const editAndApproveQueueItem = useAppStore((s) => s.editAndApproveQueueItem);
   const record = records.find((r) => r.id === item.targetRecord.id);
+  const { paneTitle } = parseTargetRecordDisplayName(item.targetRecord.displayName);
   const isPending = item.status === 'pending';
   const isHeld = item.status === 'held';
   const draft = item.draftContent;
   const isOutreachDraft =
     isPending && item.actionType === 'outreach_draft' && isOutreachContent(draft);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editSubject, setEditSubject] = useState('');
-  const [editBody, setEditBody] = useState('');
-  const [showWritingHelp, setShowWritingHelp] = useState(false);
-
-  useEffect(() => {
-    setIsEditing(false);
-    setEditSubject('');
-    setEditBody('');
-    setShowWritingHelp(false);
-  }, [item.id]);
-
-  const openEditMode = () => {
-    if (!draft || !isOutreachContent(draft)) return;
-
-    setEditSubject(draft.channel === 'email' ? (draft.subject ?? '') : '');
-    setEditBody(draft.body);
-    setShowWritingHelp(false);
-    setIsEditing(true);
-  };
-
-  const closeEditMode = () => {
-    setIsEditing(false);
-    setEditSubject('');
-    setEditBody('');
-    setShowWritingHelp(false);
-  };
-
-  const buildEditedContent = (): DraftContent | null => {
-    if (!draft || !isOutreachContent(draft)) return null;
+  const buildEditedContent = (): DraftContent => {
+    if (!draft || !isOutreachContent(draft)) {
+      return { channel: 'linkedin', body: editBody };
+    }
 
     if (draft.channel === 'email') {
       return { channel: 'email', subject: editSubject, body: editBody };
     }
+
     return { channel: 'linkedin', body: editBody };
   };
 
   const handleApproveEdited = () => {
-    const edited = buildEditedContent();
-    if (!edited) return;
-
-    editAndApproveQueueItem(item.id, edited);
-    closeEditMode();
-    onEditedApproved?.();
+    onEditApprove(buildEditedContent());
+    onCancelEdit();
   };
-
-  const handleAcceptSuggestion = (text: string) => {
-    if (!draft || !isOutreachContent(draft)) return;
-
-    if (draft.channel === 'email') {
-      const parsed = textToOutreach(text, draft);
-      setEditSubject(parsed.subject ?? '');
-      setEditBody(parsed.body);
-    } else {
-      setEditBody(text);
-    }
-  };
-
-  const currentDraftText =
-    draft && isOutreachContent(draft)
-      ? outreachToText(
-          draft.channel === 'email'
-            ? { channel: 'email', subject: editSubject, body: editBody }
-            : { channel: 'linkedin', body: editBody },
-        )
-      : '';
 
   const renderDraftCard = () => {
     if (!draft) {
@@ -132,70 +95,45 @@ export function QueueDetailPane({
       );
     }
 
-    if (isEditing && isOutreachContent(draft)) {
-      return (
-        <section className="queue-detail-draft-section">
-          <div className="editing-draft-card">
-            <div className="editing-draft-header">
-              <span className="queue-detail-draft-label mono">Editing Draft</span>
-            </div>
-            <div className="editing-draft-fields">
-              {draft.channel === 'email' && (
-                <input
-                  className="edit-subject"
-                  type="text"
-                  value={editSubject}
-                  onChange={(e) => setEditSubject(e.target.value)}
-                  aria-label="Email subject"
-                />
-              )}
-              {draft.channel === 'email' && (
-                <div className="edit-divider" aria-hidden="true" />
-              )}
-              <textarea
-                className="edit-body"
-                value={editBody}
-                onChange={(e) => setEditBody(e.target.value)}
-                rows={8}
-                aria-label="Draft body"
-              />
-              <div className="writing-help-trigger">
-                <button
-                  type="button"
-                  className="writing-help-link mono"
-                  onClick={() => setShowWritingHelp((open) => !open)}
-                >
-                  Get writing help →
-                </button>
-              </div>
-              {showWritingHelp && (
-                <WritingAssistant
-                  compact
-                  contactName={item.targetRecord.displayName}
-                  contactType={record?.contactType ?? null}
-                  dealStage={record?.dealStage ?? null}
-                  agentReasoning={item.agentReasoning}
-                  currentDraft={currentDraftText}
-                  onAccept={handleAcceptSuggestion}
-                />
-              )}
-            </div>
-          </div>
-        </section>
-      );
-    }
-
     if (isOutreachContent(draft)) {
+      if (isEditing) {
+        return (
+          <section className="queue-detail-draft-section editing-draft-card">
+            <div className="editing-draft-header">Editing Draft</div>
+            {draft.channel === 'email' && (
+              <input
+                type="text"
+                className="edit-subject"
+                value={editSubject}
+                onChange={(e) => onEditSubjectChange(e.target.value)}
+                aria-label="Email subject"
+              />
+            )}
+            <textarea
+              className="edit-body"
+              value={editBody}
+              onChange={(e) => onEditBodyChange(e.target.value)}
+              aria-label="Draft body"
+            />
+            <div className="writing-help-trigger">
+              <button
+                type="button"
+                className="writing-help-link"
+                onClick={onWritingHelpClick}
+              >
+                Get writing help →
+              </button>
+            </div>
+          </section>
+        );
+      }
+
       return (
         <section className="queue-detail-draft-section">
           <div className="queue-detail-draft-header">
             <span className="queue-detail-draft-label mono">Draft Content</span>
             {isOutreachDraft && (
-              <button
-                type="button"
-                className="edit-draft-link"
-                onClick={openEditMode}
-              >
+              <button type="button" className="edit-draft-link" onClick={onStartEdit}>
                 EDIT
               </button>
             )}
@@ -281,11 +219,11 @@ export function QueueDetailPane({
               {getActionTypeLabel(item.actionType)} · {getItemDisplayId(item.id)}
             </div>
             <div className="queue-detail-title-row">
-              <h2 className="queue-detail-title">{item.targetRecord.displayName}</h2>
+              <h2 className="queue-detail-title">{paneTitle}</h2>
               {isApproving && <ApprovalCheckIcon />}
             </div>
             <p className="queue-detail-subtitle mono">
-              Contact · Generated {formatRelativeTime(item.generatedAt)}
+              {formatPaneContactSubtitle(item.targetRecord.displayName, item.generatedAt)}
             </p>
           </div>
           <div className="queue-detail-confidence">
@@ -312,7 +250,7 @@ export function QueueDetailPane({
 
         {renderDraftCard()}
 
-        <div className="queue-detail-divider" aria-hidden="true" />
+        {!isEditing && <div className="queue-detail-divider" aria-hidden="true" />}
 
         {isPending && (
           <div
@@ -323,45 +261,45 @@ export function QueueDetailPane({
               .filter(Boolean)
               .join(' ')}
           >
-            <div className="action-button-group">
-              {isEditing ? (
-                <>
-                  <button
-                    type="button"
-                    className="queue-detail-approve"
-                    onClick={handleApproveEdited}
-                  >
-                    Approve Edited Version
-                  </button>
-                  <button
-                    type="button"
-                    className="queue-detail-btn-cancel"
-                    onClick={closeEditMode}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className="queue-detail-approve"
-                    onClick={onApprove}
-                    disabled={isApproving}
-                  >
-                    Approve &amp; Execute
-                  </button>
-                  <button
-                    type="button"
-                    className="queue-detail-btn-reject"
-                    onClick={onReject}
-                    disabled={isApproving}
-                  >
-                    Reject
-                  </button>
-                </>
-              )}
-            </div>
+            {isEditing ? (
+              <div className="edit-action-group">
+                <button
+                  type="button"
+                  className="queue-detail-approve"
+                  onClick={handleApproveEdited}
+                  disabled={isApproving}
+                >
+                  Approve Edited Version
+                </button>
+                <button
+                  type="button"
+                  className="queue-detail-btn-cancel"
+                  onClick={onCancelEdit}
+                  disabled={isApproving}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="action-button-group">
+                <button
+                  type="button"
+                  className="queue-detail-approve"
+                  onClick={onApprove}
+                  disabled={isApproving}
+                >
+                  Approve &amp; Execute
+                </button>
+                <button
+                  type="button"
+                  className="queue-detail-btn-reject"
+                  onClick={onReject}
+                  disabled={isApproving}
+                >
+                  Reject
+                </button>
+              </div>
+            )}
           </div>
         )}
 

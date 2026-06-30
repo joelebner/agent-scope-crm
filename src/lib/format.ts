@@ -1,6 +1,35 @@
 import type { CrmRecord, QueueItem } from '../types';
 import type { OutreachDraftContent } from '../types';
 
+const DISPLAY_NAME_SEPARATOR = ' · ';
+
+export function parseTargetRecordDisplayName(displayName: string): {
+  paneTitle: string;
+  jobTitle: string | null;
+} {
+  const parts = displayName.split(DISPLAY_NAME_SEPARATOR);
+  if (parts.length === 3) {
+    const [name, jobTitle, company] = parts;
+    return {
+      paneTitle: `${name} — ${company}`,
+      jobTitle,
+    };
+  }
+
+  return { paneTitle: displayName, jobTitle: null };
+}
+
+export function formatPaneContactSubtitle(
+  displayName: string,
+  generatedAt: string,
+): string {
+  const { jobTitle } = parseTargetRecordDisplayName(displayName);
+  const generated = formatRelativeTime(generatedAt);
+  const contactLine = `Contact · Generated ${generated}`;
+
+  return jobTitle ? `${jobTitle} · ${contactLine}` : contactLine;
+}
+
 export function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
   const now = new Date('2026-06-23T12:00:00.000Z');
