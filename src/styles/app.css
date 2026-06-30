@@ -2850,7 +2850,11 @@ textarea:focus {
 
 .writing-assistant-original-body {
   min-height: auto;
-  max-height: 120px;
+  max-height: none;
+  height: auto;
+  overflow: visible;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .writing-assistant-panel-body {
